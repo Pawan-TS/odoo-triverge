@@ -13,7 +13,7 @@
   * Navigation: Dashboard, Contacts, Products, Transactions, Reports.
 * **Cloud Deployment**:
 
-  * Early deploy on **Render/Heroku/Vercel/AWS** for live testing.
+  * Early deploy on **AWS** for live testing.
 
 ---
 
