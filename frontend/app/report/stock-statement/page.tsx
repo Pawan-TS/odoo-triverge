@@ -6,12 +6,12 @@ import { Package, Download, Calendar } from "lucide-react"
 
 export default function StockStatementPage() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <div className="hidden md:block">
         <Sidebar />
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className="md:ml-64 flex flex-col min-h-screen relative z-10">
         <Header />
 
         <main className="flex-1 p-4 md:p-6 space-y-6">

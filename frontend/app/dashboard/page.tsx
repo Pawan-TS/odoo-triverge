@@ -7,13 +7,13 @@ import { AIAssistant } from "@/components/ai-assistant"
 
 export default function Dashboard() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <div className="hidden md:block">
         <Sidebar />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="md:ml-64 flex flex-col min-h-screen relative z-10">
         {/* Header */}
         <Header />
 

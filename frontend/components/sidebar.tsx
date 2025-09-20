@@ -102,7 +102,7 @@ export function Sidebar({ className }: SidebarProps) {
   }
 
   return (
-    <div className={cn("bg-sidebar text-sidebar-foreground w-64 min-h-screen p-4 flex flex-col", className)}>
+    <div className={cn("bg-sidebar text-sidebar-foreground w-64 h-screen p-7 flex flex-col fixed left-0 top-0 z-40", className)}>
       {/* Logo */}
       <div className="mb-8">
         <Link href="/dashboard">
