@@ -265,7 +265,7 @@ describe('Products Endpoints', () => {
       const updateData = {
         trackInventory: true,
         currentStock: 50,
-        reorderLevel: 5
+        minimumStock: 5
       };
 
       const response = await testHelper.request

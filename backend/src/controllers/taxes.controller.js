@@ -1,5 +1,5 @@
-const taxesService = require('../services/taxes.service');
-const { successResponse, errorResponse } = require('../utils/response');
+const TaxService = require('../services/taxes.service');
+const { sendSuccessResponse, sendErrorResponse } = require('../utils/response');
 const { AppError } = require('../utils/appError');
 
 class TaxesController {
@@ -9,9 +9,9 @@ class TaxesController {
   async createTax(req, res, next) {
     try {
       const { organizationId } = req.user;
-      const tax = await taxesService.createTax(req.body, organizationId);
+      const tax = await TaxService.createTax(req.body, organizationId);
       
-      return successResponse(res, tax, 'Tax created successfully', 201);
+      return sendSuccessResponse(res, 201, 'Tax created successfully', tax);
     } catch (error) {
       return next(error);
     }
@@ -33,9 +33,9 @@ class TaxesController {
         sortOrder: req.query.sortOrder
       };
 
-      const result = await taxesService.getTaxes(organizationId, options);
+      const result = await TaxService.getTaxes(organizationId, options);
       
-      return successResponse(res, result, 'Taxes retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Taxes retrieved successfully', result);
     } catch (error) {
       return next(error);
     }
@@ -49,9 +49,9 @@ class TaxesController {
       const { organizationId } = req.user;
       const { id } = req.params;
       
-      const tax = await taxesService.getTaxById(id, organizationId);
+      const tax = await TaxService.getTaxById(id, organizationId);
       
-      return successResponse(res, tax, 'Tax retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Tax retrieved successfully', tax);
     } catch (error) {
       return next(error);
     }
@@ -65,9 +65,9 @@ class TaxesController {
       const { organizationId } = req.user;
       const { code } = req.params;
       
-      const tax = await taxesService.getTaxByCode(code, organizationId);
+      const tax = await TaxService.getTaxByCode(code, organizationId);
       
-      return successResponse(res, tax, 'Tax retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Tax retrieved successfully', tax);
     } catch (error) {
       return next(error);
     }
@@ -81,9 +81,9 @@ class TaxesController {
       const { organizationId } = req.user;
       const { id } = req.params;
       
-      const tax = await taxesService.updateTax(id, req.body, organizationId);
+      const tax = await TaxService.updateTax(id, req.body, organizationId);
       
-      return successResponse(res, tax, 'Tax updated successfully');
+      return sendSuccessResponse(res, 200, 'Tax updated successfully', tax);
     } catch (error) {
       return next(error);
     }
@@ -97,9 +97,9 @@ class TaxesController {
       const { organizationId } = req.user;
       const { id } = req.params;
       
-      const result = await taxesService.deleteTax(id, organizationId);
+      const result = await TaxService.deleteTax(id, organizationId);
       
-      return successResponse(res, result, 'Tax deleted successfully');
+      return sendSuccessResponse(res, 200, 'Tax deleted successfully', result);
     } catch (error) {
       return next(error);
     }
@@ -112,9 +112,9 @@ class TaxesController {
     try {
       const { organizationId } = req.user;
       
-      const taxes = await taxesService.getActiveTaxes(organizationId);
+      const taxes = await TaxService.getActiveTaxes(organizationId);
       
-      return successResponse(res, taxes, 'Active taxes retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Active taxes retrieved successfully', taxes);
     } catch (error) {
       return next(error);
     }
@@ -127,9 +127,9 @@ class TaxesController {
     try {
       const { baseAmount, taxRate, taxType } = req.body;
       
-      const calculation = taxesService.calculateTaxAmount(baseAmount, taxRate, taxType);
+      const calculation = TaxService.calculateTaxAmount(baseAmount, taxRate, taxType);
       
-      return successResponse(res, calculation, 'Tax calculated successfully');
+      return sendSuccessResponse(res, 200, 'Tax calculated successfully', calculation);
     } catch (error) {
       return next(error);
     }
@@ -142,9 +142,9 @@ class TaxesController {
     try {
       const { organizationId } = req.user;
       
-      const stats = await taxesService.getTaxStats(organizationId);
+      const stats = await TaxService.getTaxStats(organizationId);
       
-      return successResponse(res, stats, 'Tax statistics retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Tax statistics retrieved successfully', stats);
     } catch (error) {
       return next(error);
     }
@@ -157,9 +157,9 @@ class TaxesController {
     try {
       const { organizationId } = req.user;
       
-      const result = await taxesService.createDefaultTaxes(organizationId);
+      const result = await TaxService.createDefaultTaxes(organizationId);
       
-      return successResponse(res, result, 'Default taxes created successfully');
+      return sendSuccessResponse(res, 200, 'Default taxes created successfully', result);
     } catch (error) {
       return next(error);
     }

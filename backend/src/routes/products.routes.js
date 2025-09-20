@@ -89,6 +89,17 @@ router.put(
 );
 
 /**
+ * @route   POST /api/v1/products/:id/stock-adjustment
+ * @desc    Adjust product stock
+ * @access  Private
+ */
+router.post(
+  '/:id/stock-adjustment',
+  validateRequest(stockUpdateSchema),
+  productsController.updateStock
+);
+
+/**
  * @route   DELETE /api/v1/products/:id
  * @desc    Delete product (soft delete)
  * @access  Private

@@ -2,21 +2,21 @@ const Joi = require('joi');
 
 // Base product schema
 const productBaseSchema = {
-  productName: Joi.string().trim().min(2).max(255).required()
+  name: Joi.string().trim().min(2).max(255).required()
     .messages({
       'string.empty': 'Product name is required',
       'string.min': 'Product name must be at least 2 characters long',
       'string.max': 'Product name cannot exceed 255 characters'
     }),
   
-  productCode: Joi.string().trim().max(50).optional()
+  sku: Joi.string().trim().max(50).optional()
     .messages({
       'string.max': 'Product code cannot exceed 50 characters'
     }),
 
-  productType: Joi.string().valid('goods', 'service').required()
+  type: Joi.string().valid('consu', 'product', 'service').required()
     .messages({
-      'any.only': 'Product type must be goods or service',
+      'any.only': 'Product type must be consu, product, or service',
       'any.required': 'Product type is required'
     }),
 
@@ -110,7 +110,10 @@ const createProductSchema = Joi.object({
 // Update product validation schema
 const updateProductSchema = Joi.object({
   ...Object.keys(productBaseSchema).reduce((acc, key) => {
-    if (key === 'productType') {
+    // Make all fields optional for updates
+    if (key === 'type') {
+      acc[key] = productBaseSchema[key].optional();
+    } else if (key === 'name') {
       acc[key] = productBaseSchema[key].optional();
     } else {
       acc[key] = productBaseSchema[key];
@@ -145,9 +148,9 @@ const productQuerySchema = Joi.object({
       'number.integer': 'Category ID must be a whole number'
     }),
 
-  productType: Joi.string().valid('goods', 'service').optional()
+  type: Joi.string().valid('consu', 'product', 'service').optional()
     .messages({
-      'any.only': 'Product type must be goods or service'
+      'any.only': 'Product type must be consu, product, or service'
     }),
 
   isActive: Joi.boolean().optional(),
@@ -155,11 +158,11 @@ const productQuerySchema = Joi.object({
   lowStock: Joi.boolean().optional(),
 
   sortBy: Joi.string().valid(
-    'productName', 'productCode', 'productType', 'salePrice', 'costPrice',
+    'name', 'sku', 'type', 'salePrice', 'costPrice',
     'currentStock', 'minimumStock', 'createdAt', 'updatedAt'
   ).optional().default('createdAt')
     .messages({
-      'any.only': 'Sort field must be one of: productName, productCode, productType, salePrice, costPrice, currentStock, minimumStock, createdAt, updatedAt'
+      'any.only': 'Sort field must be one of: name, sku, type, salePrice, costPrice, currentStock, minimumStock, createdAt, updatedAt'
     }),
 
   sortOrder: Joi.string().valid('ASC', 'DESC', 'asc', 'desc').optional().default('DESC')
@@ -176,9 +179,9 @@ const stockUpdateSchema = Joi.object({
       'any.required': 'Quantity is required'
     }),
 
-  type: Joi.string().valid('in', 'out').required()
+  type: Joi.string().valid('in', 'out', 'add', 'subtract').required()
     .messages({
-      'any.only': 'Type must be in or out',
+      'any.only': 'Type must be in, out, add, or subtract',
       'any.required': 'Type is required'
     }),
 

@@ -8,6 +8,7 @@ const UserRole = require('./UserRole');
 const Contact = require('./Contact');
 const Address = require('./Address');
 const Product = require('./Product');
+const ProductCategory = require('./ProductCategory');
 const Tax = require('./Tax');
 const ChartOfAccount = require('./ChartOfAccount');
 const DocumentSequence = require('./DocumentSequence');
@@ -73,10 +74,17 @@ Address.belongsTo(Contact, { foreignKey: 'contactId', as: 'contact' });
 
 // Product associations
 Product.belongsTo(Organization, { foreignKey: 'organizationId', as: 'organization' });
+Product.belongsTo(ProductCategory, { foreignKey: 'categoryId', as: 'category' });
 Product.belongsTo(Tax, { foreignKey: 'salesTaxId', as: 'salesTax' });
 Product.hasMany(SalesOrderLine, { foreignKey: 'productId', as: 'salesOrderLines' });
 Product.hasMany(InvoiceLine, { foreignKey: 'productId', as: 'invoiceLines' });
 Product.hasMany(PurchaseOrderLine, { foreignKey: 'productId', as: 'purchaseOrderLines' });
+
+// ProductCategory associations
+ProductCategory.belongsTo(Organization, { foreignKey: 'organizationId', as: 'organization' });
+ProductCategory.belongsTo(ProductCategory, { foreignKey: 'parentId', as: 'parent' });
+ProductCategory.hasMany(ProductCategory, { foreignKey: 'parentId', as: 'children' });
+ProductCategory.hasMany(Product, { foreignKey: 'categoryId', as: 'products' });
 Product.hasMany(VendorBillLine, { foreignKey: 'productId', as: 'vendorBillLines' });
 Product.hasMany(StockMovement, { foreignKey: 'productId', as: 'stockMovements' });
 
@@ -183,6 +191,7 @@ const models = {
   Contact,
   Address,
   Product,
+  ProductCategory,
   Tax,
   ChartOfAccount,
   DocumentSequence,

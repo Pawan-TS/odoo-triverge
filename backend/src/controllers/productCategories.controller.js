@@ -1,5 +1,5 @@
-const productCategoriesService = require('../services/productCategories.service');
-const { successResponse, errorResponse } = require('../utils/response');
+const ProductCategoryService = require('../services/productCategories.service');
+const { sendSuccessResponse, sendErrorResponse } = require('../utils/response');
 const { AppError } = require('../utils/appError');
 
 class ProductCategoriesController {
@@ -9,9 +9,9 @@ class ProductCategoriesController {
   async createCategory(req, res, next) {
     try {
       const { organizationId } = req.user;
-      const category = await productCategoriesService.createCategory(req.body, organizationId);
+      const category = await ProductCategoryService.createCategory(req.body, organizationId);
       
-      return successResponse(res, category, 'Product category created successfully', 201);
+      return sendSuccessResponse(res, 201, 'Product category created successfully', category);
     } catch (error) {
       return next(error);
     }
@@ -31,12 +31,12 @@ class ProductCategoriesController {
         isActive: req.query.isActive,
         sortBy: req.query.sortBy,
         sortOrder: req.query.sortOrder,
-        includeChildren: req.query.includeChildren
+        includeChildren: req.query.includeChildren || req.query.includeHierarchy
       };
 
-      const result = await productCategoriesService.getCategories(organizationId, options);
+      const result = await ProductCategoryService.getCategories(organizationId, options);
       
-      return successResponse(res, result, 'Product categories retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Product categories retrieved successfully', result);
     } catch (error) {
       return next(error);
     }
@@ -50,9 +50,9 @@ class ProductCategoriesController {
       const { organizationId } = req.user;
       const { id } = req.params;
       
-      const category = await productCategoriesService.getCategoryById(id, organizationId);
+      const category = await ProductCategoryService.getCategoryById(id, organizationId);
       
-      return successResponse(res, category, 'Product category retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Product category retrieved successfully', category);
     } catch (error) {
       return next(error);
     }
@@ -66,9 +66,9 @@ class ProductCategoriesController {
       const { organizationId } = req.user;
       const { id } = req.params;
       
-      const category = await productCategoriesService.updateCategory(id, req.body, organizationId);
+      const category = await ProductCategoryService.updateCategory(id, req.body, organizationId);
       
-      return successResponse(res, category, 'Product category updated successfully');
+      return sendSuccessResponse(res, 200, 'Product category updated successfully', category);
     } catch (error) {
       return next(error);
     }
@@ -82,9 +82,9 @@ class ProductCategoriesController {
       const { organizationId } = req.user;
       const { id } = req.params;
       
-      const result = await productCategoriesService.deleteCategory(id, organizationId);
+      const result = await ProductCategoryService.deleteCategory(id, organizationId);
       
-      return successResponse(res, result, 'Product category deleted successfully');
+      return sendSuccessResponse(res, 200, 'Product category deleted successfully', result);
     } catch (error) {
       return next(error);
     }
@@ -97,9 +97,9 @@ class ProductCategoriesController {
     try {
       const { organizationId } = req.user;
       
-      const tree = await productCategoriesService.getCategoryTree(organizationId);
+      const tree = await ProductCategoryService.getCategoryTree(organizationId);
       
-      return successResponse(res, tree, 'Category tree retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Category tree retrieved successfully', tree);
     } catch (error) {
       return next(error);
     }
@@ -112,9 +112,9 @@ class ProductCategoriesController {
     try {
       const { organizationId } = req.user;
       
-      const stats = await productCategoriesService.getCategoryStats(organizationId);
+      const stats = await ProductCategoryService.getCategoryStats(organizationId);
       
-      return successResponse(res, stats, 'Category statistics retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Category statistics retrieved successfully', stats);
     } catch (error) {
       return next(error);
     }

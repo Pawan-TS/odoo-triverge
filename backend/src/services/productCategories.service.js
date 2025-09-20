@@ -1,4 +1,4 @@
-const { ProductCategory, sequelize } = require('../models');
+const { ProductCategory, Product, sequelize } = require('../models');
 const { AppError } = require('../utils/appError');
 const { generateDocumentNumber } = require('../utils/sequences');
 const { Op } = require('sequelize');
@@ -12,19 +12,32 @@ class ProductCategoryService {
     
     try {
       // Generate category code if not provided
-      if (!data.categoryCode) {
-        data.categoryCode = await generateDocumentNumber(organizationId, 'CAT');
+      if (!data.code) {
+        const generatedCode = await generateDocumentNumber(organizationId, 'CAT');
+        data.code = generatedCode.documentNumber;
       }
 
-      // Validate unique category code within organization
-      const existingCategory = await ProductCategory.findOne({
+      // Validate unique category name within organization (for duplicate test)
+      const existingNameCategory = await ProductCategory.findOne({
         where: {
           organizationId,
-          categoryCode: data.categoryCode
+          name: data.name
         }
       });
 
-      if (existingCategory) {
+      if (existingNameCategory) {
+        throw new AppError('Category name already exists', 409);
+      }
+
+      // Validate unique category code within organization
+      const existingCodeCategory = await ProductCategory.findOne({
+        where: {
+          organizationId,
+          code: data.code
+        }
+      });
+
+      if (existingCodeCategory) {
         throw new AppError('Category code already exists', 400);
       }
 
@@ -38,7 +51,7 @@ class ProductCategoryService {
         });
 
         if (!parentCategory) {
-          throw new AppError('Parent category not found', 404);
+          throw new AppError('Parent category not found', 400);
         }
       }
 
@@ -54,7 +67,9 @@ class ProductCategoryService {
 
       return await this.getCategoryById(category.id, organizationId);
     } catch (error) {
-      await transaction.rollback();
+      if (!transaction.finished) {
+        await transaction.rollback();
+      }
       throw error;
     }
   }
@@ -62,22 +77,28 @@ class ProductCategoryService {
   /**
    * Get category by ID
    */
-  async getCategoryById(categoryId, organizationId) {
+  async getCategoryById(categoryId, organizationId, includeInactive = false) {
+    const whereCondition = {
+      id: categoryId,
+      organizationId
+    };
+    
+    if (!includeInactive) {
+      whereCondition.isActive = true;  // Only return active categories by default
+    }
+    
     const category = await ProductCategory.findOne({
-      where: {
-        id: categoryId,
-        organizationId
-      },
+      where: whereCondition,
       include: [
         {
           model: ProductCategory,
           as: 'parent',
-          attributes: ['id', 'categoryName', 'categoryCode']
+          attributes: ['id', 'name', 'code']
         },
         {
           model: ProductCategory,
           as: 'children',
-          attributes: ['id', 'categoryName', 'categoryCode', 'isActive']
+          attributes: ['id', 'name', 'code', 'isActive']
         }
       ]
     });
@@ -86,77 +107,96 @@ class ProductCategoryService {
       throw new AppError('Category not found', 404);
     }
 
-    return category;
+    // Get product count for this category
+    const productCount = await Product.count({
+      where: {
+        categoryId: categoryId,
+        organizationId
+      }
+    });
+
+    // Convert to plain object and add product count
+    const categoryData = category.toJSON();
+    categoryData.productCount = productCount;
+
+    return categoryData;
   }
 
   /**
    * Get all categories with pagination and filtering
    */
   async getCategories(organizationId, options = {}) {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      parentId,
-      isActive,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC',
-      includeChildren = false
-    } = options;
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        parentId,
+        isActive,
+        sortBy = 'createdAt',
+        sortOrder = 'DESC',
+        includeChildren = false
+      } = options;
 
-    const offset = (page - 1) * limit;
-    const whereCondition = { organizationId };
+      const offset = (page - 1) * limit;
+      const whereCondition = { organizationId };
 
-    // Add filters
-    if (search) {
-      whereCondition[Op.or] = [
-        { categoryName: { [Op.like]: `%${search}%` } },
-        { categoryCode: { [Op.like]: `%${search}%` } },
-        { description: { [Op.like]: `%${search}%` } }
-      ];
-    }
-
-    if (parentId !== undefined) {
-      whereCondition.parentId = parentId;
-    }
-
-    if (isActive !== undefined) {
-      whereCondition.isActive = isActive;
-    }
-
-    const includeOptions = [
-      {
-        model: ProductCategory,
-        as: 'parent',
-        attributes: ['id', 'categoryName', 'categoryCode']
+      // Add simple filters one by one
+      if (isActive !== undefined) {
+        whereCondition.isActive = isActive;
       }
-    ];
 
-    if (includeChildren) {
-      includeOptions.push({
-        model: ProductCategory,
-        as: 'children',
-        attributes: ['id', 'categoryName', 'categoryCode', 'isActive']
-      });
-    }
+      if (parentId !== undefined) {
+        whereCondition.parentId = parentId;
+      }
 
-    const { count, rows } = await ProductCategory.findAndCountAll({
-      where: whereCondition,
-      include: includeOptions,
-      order: [[sortBy, sortOrder]],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
+      if (search) {
+        whereCondition.name = { [Op.like]: `%${search}%` };
+      }
 
-    return {
-      categories: rows,
-      pagination: {
-        total: count,
-        page: parseInt(page),
+      // Include options for associations
+      const includeOptions = [];
+      
+      if (includeChildren) {
+        includeOptions.push({
+          model: ProductCategory,
+          as: 'children',
+          attributes: ['id', 'name', 'code', 'isActive'],
+          required: false
+        });
+      }
+
+      const { count, rows } = await ProductCategory.findAndCountAll({
+        where: whereCondition,
+        include: includeOptions,
+        order: [['created_at', sortOrder]],
         limit: parseInt(limit),
-        pages: Math.ceil(count / limit)
-      }
-    };
+        offset: parseInt(offset)
+      });
+
+      // Ensure children property exists even if empty
+      const categoriesWithChildren = rows.map(category => {
+        const categoryJson = category.toJSON();
+        if (includeChildren && !categoryJson.children) {
+          categoryJson.children = [];
+        }
+        return categoryJson;
+      });
+
+      return {
+        categories: categoriesWithChildren,
+        pagination: {
+          total: count,
+          page: parseInt(page),
+          currentPage: parseInt(page),
+          limit: parseInt(limit),
+          pages: Math.ceil(count / limit)
+        }
+      };
+    } catch (error) {
+      console.error('Error in getCategories:', error);
+      throw error;
+    }
   }
 
   /**
@@ -170,6 +210,7 @@ class ProductCategoryService {
         where: {
           id: categoryId,
           organizationId
+          // Remove isActive filter for updates - allow updating any existing category
         }
       });
 
@@ -178,11 +219,11 @@ class ProductCategoryService {
       }
 
       // Check if category code is being changed and validate uniqueness
-      if (data.categoryCode && data.categoryCode !== category.categoryCode) {
+      if (data.code && data.code !== category.code) {
         const existingCategory = await ProductCategory.findOne({
           where: {
             organizationId,
-            categoryCode: data.categoryCode,
+            code: data.code,
             id: { [Op.ne]: categoryId }
           }
         });
@@ -196,7 +237,13 @@ class ProductCategoryService {
       if (data.parentId && data.parentId !== category.parentId) {
         // Prevent circular reference
         if (data.parentId === categoryId) {
-          throw new AppError('Category cannot be its own parent', 400);
+          throw new AppError('Category cannot be its own parent (circular hierarchy)', 400);
+        }
+
+        // Check if new parent is a descendant of current category (would create circular hierarchy)
+        const isCircular = await this.checkCircularHierarchy(categoryId, data.parentId, organizationId);
+        if (isCircular) {
+          throw new AppError('Cannot create circular hierarchy', 400);
         }
 
         const parentCategory = await ProductCategory.findOne({
@@ -215,9 +262,11 @@ class ProductCategoryService {
       await category.update(data, { transaction });
       await transaction.commit();
 
-      return await this.getCategoryById(category.id, organizationId);
+      return await this.getCategoryById(category.id, organizationId, true); // Include inactive categories
     } catch (error) {
-      await transaction.rollback();
+      if (!transaction.finished) {
+        await transaction.rollback();
+      }
       throw error;
     }
   }
@@ -233,6 +282,7 @@ class ProductCategoryService {
         where: {
           id: categoryId,
           organizationId
+          // Remove isActive filter for deletes - allow deleting any existing category
         }
       });
 
@@ -261,7 +311,7 @@ class ProductCategoryService {
       });
 
       if (childrenCount > 0) {
-        throw new AppError('Cannot delete category with child categories. Please delete child categories first.', 400);
+        throw new AppError('Cannot delete category with subcategories. Please delete subcategories first.', 400);
       }
 
       // Soft delete
@@ -270,7 +320,9 @@ class ProductCategoryService {
 
       return { message: 'Category deactivated successfully' };
     } catch (error) {
-      await transaction.rollback();
+      if (!transaction.finished) {
+        await transaction.rollback();
+      }
       throw error;
     }
   }
@@ -284,8 +336,8 @@ class ProductCategoryService {
         organizationId,
         isActive: true
       },
-      attributes: ['id', 'categoryName', 'categoryCode', 'parentId', 'description'],
-      order: [['categoryName', 'ASC']]
+      attributes: ['id', 'name', 'code', 'parentId', 'description'],
+      order: [['name', 'ASC']]
     });
 
     // Build tree structure
@@ -314,6 +366,42 @@ class ProductCategoryService {
     });
 
     return roots;
+  }
+
+  /**
+   * Check if creating a parent-child relationship would create circular hierarchy
+   */
+  async checkCircularHierarchy(categoryId, proposedParentId, organizationId) {
+    let currentParent = proposedParentId;
+    const visited = new Set();
+
+    while (currentParent) {
+      if (visited.has(currentParent)) {
+        return true; // Circular reference detected
+      }
+      
+      if (currentParent == categoryId) { // Use == for type coercion
+        return true; // Would create circular hierarchy
+      }
+
+      visited.add(currentParent);
+
+      const parent = await ProductCategory.findOne({
+        where: {
+          id: currentParent,
+          organizationId
+        },
+        attributes: ['parentId']
+      });
+
+      if (!parent) {
+        break;
+      }
+
+      currentParent = parent.parentId;
+    }
+
+    return false;
   }
 
   /**

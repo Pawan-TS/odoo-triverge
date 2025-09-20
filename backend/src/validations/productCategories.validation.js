@@ -2,14 +2,14 @@ const Joi = require('joi');
 
 // Base category schema
 const categoryBaseSchema = {
-  categoryName: Joi.string().trim().min(2).max(255).required()
+  name: Joi.string().trim().min(2).max(255).required()
     .messages({
       'string.empty': 'Category name is required',
       'string.min': 'Category name must be at least 2 characters long',
       'string.max': 'Category name cannot exceed 255 characters'
     }),
   
-  categoryCode: Joi.string().trim().max(50).optional()
+  code: Joi.string().trim().max(50).optional()
     .messages({
       'string.max': 'Category code cannot exceed 50 characters'
     }),
@@ -35,10 +35,29 @@ const createCategorySchema = Joi.object({
 
 // Update category validation schema
 const updateCategorySchema = Joi.object({
-  ...Object.keys(categoryBaseSchema).reduce((acc, key) => {
-    acc[key] = categoryBaseSchema[key];
-    return acc;
-  }, {})
+  name: Joi.string().trim().min(2).max(255).optional()
+    .messages({
+      'string.min': 'Category name must be at least 2 characters long',
+      'string.max': 'Category name cannot exceed 255 characters'
+    }),
+  
+  code: Joi.string().trim().max(50).optional()
+    .messages({
+      'string.max': 'Category code cannot exceed 50 characters'
+    }),
+
+  description: Joi.string().trim().max(1000).optional().allow('')
+    .messages({
+      'string.max': 'Description cannot exceed 1000 characters'
+    }),
+
+  parentId: Joi.number().integer().positive().optional().allow(null)
+    .messages({
+      'number.positive': 'Parent ID must be a positive number',
+      'number.integer': 'Parent ID must be a whole number'
+    }),
+
+  isActive: Joi.boolean().optional()
 });
 
 // Query validation schema for filtering categories
@@ -73,12 +92,14 @@ const categoryQuerySchema = Joi.object({
   isActive: Joi.boolean().optional(),
 
   includeChildren: Joi.boolean().optional().default(false),
+  
+  includeHierarchy: Joi.boolean().optional(),
 
   sortBy: Joi.string().valid(
-    'categoryName', 'categoryCode', 'createdAt', 'updatedAt'
+    'name', 'code', 'createdAt', 'updatedAt'
   ).optional().default('createdAt')
     .messages({
-      'any.only': 'Sort field must be one of: categoryName, categoryCode, createdAt, updatedAt'
+      'any.only': 'Sort field must be one of: name, code, createdAt, updatedAt'
     }),
 
   sortOrder: Joi.string().valid('ASC', 'DESC', 'asc', 'desc').optional().default('DESC')

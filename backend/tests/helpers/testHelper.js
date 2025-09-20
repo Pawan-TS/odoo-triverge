@@ -82,7 +82,9 @@ class TestHelper {
     const sequences = [
       { organizationId: organization.id, docType: 'CUST', prefix: 'CUST', nextVal: 1, formatMask: '{prefix}-{seq:04d}' },
       { organizationId: organization.id, docType: 'VEND', prefix: 'VEND', nextVal: 1, formatMask: '{prefix}-{seq:04d}' },
-      { organizationId: organization.id, docType: 'CONT', prefix: 'CONT', nextVal: 1, formatMask: '{prefix}-{seq:04d}' }
+      { organizationId: organization.id, docType: 'CONT', prefix: 'CONT', nextVal: 1, formatMask: '{prefix}-{seq:04d}' },
+      { organizationId: organization.id, docType: 'PROD', prefix: 'PROD', nextVal: 1, formatMask: '{prefix}-{seq:04d}' },
+      { organizationId: organization.id, docType: 'CAT', prefix: 'CAT', nextVal: 1, formatMask: '{prefix}-{seq:04d}' }
     ];
 
     for (const seqData of sequences) {
@@ -147,13 +149,25 @@ class TestHelper {
 
   // Clean database tables (preserving roles)
   async cleanDatabase() {
-    const models = Object.keys(require('../../src/models'));
+    // Define the cleanup order (dependent models first)
+    const cleanupOrder = [
+      'Product',           // Has foreign key to ProductCategory
+      'ProductCategory',   // Has foreign key to Organization
+      'DocumentSequence',  // Has foreign key to Organization
+      'UserRole',          // Has foreign keys to User and Role
+      'User',              // Has foreign key to Organization
+      'Organization'       // Independent, can be deleted last
+    ];
     
-    for (const modelName of models) {
-      if (modelName !== 'sequelize' && modelName !== 'Sequelize' && modelName !== 'Role') {
-        const model = require('../../src/models')[modelName];
-        if (model && typeof model.destroy === 'function') {
-          await model.destroy({ where: {}, force: true });
+    const models = require('../../src/models');
+    
+    for (const modelName of cleanupOrder) {
+      if (models[modelName] && typeof models[modelName].destroy === 'function') {
+        try {
+          await models[modelName].destroy({ where: {}, force: true });
+        } catch (error) {
+          // Ignore errors for non-existent tables during cleanup
+          console.warn(`Warning: Could not clean ${modelName}:`, error.message);
         }
       }
     }
