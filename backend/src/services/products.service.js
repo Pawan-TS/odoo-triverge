@@ -1,6 +1,6 @@
 const { Product, ProductCategory, sequelize } = require('../models');
 const { AppError } = require('../utils/appError');
-const { getNextSequence } = require('../utils/sequenceGenerator');
+const { generateDocumentNumber } = require('../utils/sequences');
 const { Op } = require('sequelize');
 
 class ProductService {
@@ -13,7 +13,7 @@ class ProductService {
     try {
       // Generate product code if not provided
       if (!data.productCode) {
-        data.productCode = await getNextSequence(organizationId, 'PROD');
+        data.productCode = await generateDocumentNumber(organizationId, 'PROD');
       }
 
       // Validate unique product code within organization

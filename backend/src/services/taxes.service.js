@@ -1,6 +1,6 @@
 const { Tax, sequelize } = require('../models');
 const { AppError } = require('../utils/appError');
-const { getNextSequence } = require('../utils/sequenceGenerator');
+const { generateDocumentNumber } = require('../utils/sequences');
 const { Op } = require('sequelize');
 
 class TaxService {
@@ -13,7 +13,7 @@ class TaxService {
     try {
       // Generate tax code if not provided
       if (!data.taxCode) {
-        data.taxCode = await getNextSequence(organizationId, 'TAX');
+        data.taxCode = await generateDocumentNumber(organizationId, 'TAX');
       }
 
       // Validate unique tax code within organization

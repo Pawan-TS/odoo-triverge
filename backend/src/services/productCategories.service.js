@@ -1,6 +1,6 @@
-const { ProductCategory, Product, sequelize } = require('../models');
+const { ProductCategory, sequelize } = require('../models');
 const { AppError } = require('../utils/appError');
-const { getNextSequence } = require('../utils/sequenceGenerator');
+const { generateDocumentNumber } = require('../utils/sequences');
 const { Op } = require('sequelize');
 
 class ProductCategoryService {
@@ -13,7 +13,7 @@ class ProductCategoryService {
     try {
       // Generate category code if not provided
       if (!data.categoryCode) {
-        data.categoryCode = await getNextSequence(organizationId, 'CAT');
+        data.categoryCode = await generateDocumentNumber(organizationId, 'CAT');
       }
 
       // Validate unique category code within organization

@@ -1,7 +1,7 @@
 const express = require('express');
 const productsController = require('../controllers/products.controller');
-const { authenticate } = require('../middleware/auth.middleware');
-const { validateOrganization } = require('../middleware/organization.middleware');
+const { authMiddleware } = require('../middleware/auth.middleware');
+const { orgMiddleware } = require('../middleware/org.middleware');
 const { validateRequest } = require('../middleware/validation.middleware');
 const { 
   createProductSchema, 
@@ -13,8 +13,8 @@ const {
 const router = express.Router();
 
 // Apply authentication and organization validation to all routes
-router.use(authenticate);
-router.use(validateOrganization);
+router.use(authMiddleware);
+router.use(orgMiddleware);
 
 /**
  * @route   POST /api/v1/products

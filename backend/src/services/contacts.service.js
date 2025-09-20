@@ -1,6 +1,6 @@
 const { Contact, ContactAddress, sequelize } = require('../models');
 const { AppError } = require('../utils/appError');
-const { getNextSequence } = require('../utils/sequenceGenerator');
+const { generateDocumentNumber } = require('../utils/sequences');
 const { Op } = require('sequelize');
 
 class ContactService {
@@ -15,7 +15,7 @@ class ContactService {
       if (!data.contactCode) {
         const prefix = data.contactType === 'customer' ? 'CUST' : 
                       data.contactType === 'vendor' ? 'VEND' : 'CONT';
-        data.contactCode = await getNextSequence(organizationId, prefix);
+        data.contactCode = await generateDocumentNumber(organizationId, prefix);
       }
 
       // Validate unique contact code within organization
