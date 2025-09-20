@@ -1,0 +1,131 @@
+# GitHub Actions Workflow for API Testing
+name: API Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 150911
+          MYSQL_DATABASE: Shiv_furnitures_test
+        ports:
+          - 3307:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        npm ci
+
+    - name: Setup test environment
+      run: |
+        cd backend
+        cp .env.test .env
+        
+    - name: Setup test database
+      run: |
+        cd backend
+        npm run db:test:create
+        npm run db:test:migrate
+
+    - name: Run health check tests
+      run: |
+        cd backend
+        npm run test:health
+
+    - name: Run authentication tests
+      run: |
+        cd backend
+        npm run test:auth
+
+    - name: Run contacts tests
+      run: |
+        cd backend
+        npm run test:contacts
+
+    - name: Run products tests
+      run: |
+        cd backend
+        npm run test:products
+
+    - name: Run product categories tests
+      run: |
+        cd backend
+        npm run test:categories
+
+    - name: Run all tests with coverage
+      run: |
+        cd backend
+        npm run test:coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage/lcov.info
+        flags: backend
+        name: backend-coverage
+
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = './backend/coverage/coverage-summary.json';
+          
+          if (fs.existsSync(path)) {
+            const coverage = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const lines = coverage.total.lines.pct;
+            const statements = coverage.total.statements.pct;
+            const functions = coverage.total.functions.pct;
+            const branches = coverage.total.branches.pct;
+            
+            const comment = `## 📊 Test Coverage Report
+            
+            | Type | Coverage |
+            |------|----------|
+            | Lines | ${lines}% |
+            | Statements | ${statements}% |
+            | Functions | ${functions}% |
+            | Branches | ${branches}% |
+            
+            Coverage details available in the [workflow artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }
