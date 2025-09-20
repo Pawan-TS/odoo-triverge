@@ -15,11 +15,17 @@ const validateRequest = (schema, property = 'body') => {
     if (error) {
       const details = error.details.map(detail => ({
         message: detail.message,
-        path: detail.path,
+        field: detail.path.join('.'),
+        path: detail.path.join('.'),
         type: detail.type
       }));
 
-      return next(new ValidationError('Validation failed', details));
+      const validationError = new ValidationError('Validation failed', details);
+      // Mark parameter validation errors for different status code
+      if (property === 'params') {
+        validationError.isParamValidation = true;
+      }
+      return next(validationError);
     }
 
     // Replace request property with validated value

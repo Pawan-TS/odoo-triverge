@@ -18,6 +18,12 @@ const errorHandler = (error, req, res, next) => {
   });
 
   // Handle specific error types
+  if (error.name === 'ValidationError' && error.details) {
+    // Parameter validation errors should return 400, body validation errors should return 422
+    const statusCode = error.isParamValidation ? 400 : 422;
+    return sendErrorResponse(res, statusCode, error.message, { errors: error.details });
+  }
+
   if (error.name === 'SequelizeValidationError') {
     const validationErrors = error.errors.map(err => ({
       field: err.path,
@@ -89,7 +95,7 @@ const asyncHandler = (fn) => {
  */
 const createValidationError = (message, field = null) => {
   const error = new Error(message);
-  error.statusCode = 400;
+  error.statusCode = 422;
   error.field = field;
   return error;
 };

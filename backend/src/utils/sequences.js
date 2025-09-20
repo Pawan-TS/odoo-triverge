@@ -7,15 +7,13 @@ const moment = require('moment');
  */
 const generateDocumentNumber = async (organizationId, docType, transaction = null) => {
   try {
-    const t = transaction || sequelize;
-    
     // Lock the sequence row for update to prevent race conditions
     const sequence = await DocumentSequence.findOne({
       where: {
         organizationId,
         docType
       },
-      lock: transaction ? true : transaction.LOCK.UPDATE,
+      lock: true,
       transaction: transaction || undefined
     });
 

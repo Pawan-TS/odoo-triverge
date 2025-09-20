@@ -14,9 +14,9 @@ const contactBaseSchema = {
       'string.max': 'Contact code cannot exceed 50 characters'
     }),
 
-  contactType: Joi.string().valid('customer', 'vendor', 'both').required()
+  contactType: Joi.string().valid('Customer', 'Vendor', 'Both').required()
     .messages({
-      'any.only': 'Contact type must be customer, vendor, or both',
+      'any.only': 'Contact type must be Customer, Vendor, or Both',
       'any.required': 'Contact type is required'
     }),
 
@@ -81,6 +81,13 @@ const contactBaseSchema = {
       'string.max': 'Notes cannot exceed 1000 characters'
     }),
 
+  isCompany: Joi.boolean().optional().default(false),
+
+  vatNumber: Joi.string().trim().max(50).optional().allow('')
+    .messages({
+      'string.max': 'VAT number cannot exceed 50 characters'
+    }),
+
   isActive: Joi.boolean().optional().default(true)
 };
 
@@ -143,15 +150,32 @@ const updateContactSchema = Joi.object({
   ...Object.keys(contactBaseSchema).reduce((acc, key) => {
     if (key === 'contactType') {
       acc[key] = contactBaseSchema[key].optional();
+    } else if (key === 'contactName') {
+      // Make contactName optional in update schema
+      acc[key] = contactBaseSchema[key].optional();
     } else {
       acc[key] = contactBaseSchema[key];
     }
     return acc;
   }, {}),
+  // Allow 'name' as alias for 'contactName'
+  name: Joi.string().trim().min(2).max(255).optional()
+    .messages({
+      'string.empty': 'Contact name is required',
+      'string.min': 'Contact name must be at least 2 characters long',
+      'string.max': 'Contact name cannot exceed 255 characters'
+    }),
   addresses: Joi.array().items(addressSchema).optional().max(10)
     .messages({
       'array.max': 'Cannot have more than 10 addresses per contact'
     })
+}).custom((value, helpers) => {
+  // If 'name' is provided, copy it to 'contactName'
+  if (value.name && !value.contactName) {
+    value.contactName = value.name;
+    delete value.name;
+  }
+  return value;
 });
 
 // Query validation schema for filtering contacts
@@ -174,9 +198,9 @@ const contactQuerySchema = Joi.object({
       'string.max': 'Search term cannot exceed 255 characters'
     }),
 
-  contactType: Joi.string().valid('customer', 'vendor', 'both').optional()
+  contactType: Joi.string().valid('Customer', 'Vendor', 'Both').optional()
     .messages({
-      'any.only': 'Contact type must be customer, vendor, or both'
+      'any.only': 'Contact type must be Customer, Vendor, or Both'
     }),
 
   isActive: Joi.boolean().optional(),
@@ -195,9 +219,21 @@ const contactQuerySchema = Joi.object({
     })
 });
 
+// Parameter validation schema for contact ID
+const contactParamsSchema = Joi.object({
+  id: Joi.number().integer().positive().required()
+    .messages({
+      'number.base': 'Contact ID must be a number',
+      'number.integer': 'Contact ID must be an integer',
+      'number.positive': 'Contact ID must be positive',
+      'any.required': 'Contact ID is required'
+    })
+});
+
 module.exports = {
   createContactSchema,
   updateContactSchema,
   contactQuerySchema,
+  contactParamsSchema,
   addressSchema
 };

@@ -6,6 +6,7 @@ const { createDefaultCOA, createDefaultTaxes } = require('./coa.service');
 const { sequelize } = require('../config/db');
 const { createBusinessError, createValidationError } = require('../middleware/error.middleware');
 const { ROLES } = require('../utils/constants');
+const { Op } = require('sequelize');
 
 class AuthService {
   /**
@@ -18,7 +19,7 @@ class AuthService {
       // Check if user already exists
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
-        throw createValidationError('Email already registered');
+        throw createBusinessError('Email already registered', 409);
       }
 
       // Create organization
@@ -107,13 +108,13 @@ class AuthService {
     });
 
     if (!user) {
-      throw createValidationError('Invalid email or password');
+      throw createBusinessError('Invalid email or password', 401);
     }
 
     // Verify password
     const isValidPassword = await comparePassword(password, user.passwordHash);
     if (!isValidPassword) {
-      throw createValidationError('Invalid email or password');
+      throw createBusinessError('Invalid email or password', 401);
     }
 
     // Update last login
@@ -227,12 +228,25 @@ class AuthService {
       throw createBusinessError('User not found', 404);
     }
 
-    const allowedUpdates = ['firstName', 'lastName', 'phone'];
+    const allowedUpdates = ['firstName', 'lastName', 'phone', 'email'];
     const updates = {};
     
     for (const key of allowedUpdates) {
       if (updateData[key] !== undefined) {
         updates[key] = updateData[key];
+      }
+    }
+
+    // Check for email uniqueness if email is being updated
+    if (updates.email && updates.email !== user.email) {
+      const existingUser = await User.findOne({ 
+        where: { 
+          email: updates.email,
+          id: { [Op.ne]: userId }
+        } 
+      });
+      if (existingUser) {
+        throw createBusinessError('Email already in use', 409);
       }
     }
 

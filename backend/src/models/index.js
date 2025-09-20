@@ -54,6 +54,10 @@ User.belongsToMany(Role, { through: UserRole, foreignKey: 'userId', as: 'roles' 
 // Role associations
 Role.belongsToMany(User, { through: UserRole, foreignKey: 'roleId', as: 'users' });
 
+// UserRole associations
+UserRole.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+UserRole.belongsTo(Role, { foreignKey: 'roleId', as: 'role' });
+
 // Contact associations
 Contact.belongsTo(Organization, { foreignKey: 'organizationId', as: 'organization' });
 Contact.hasMany(Address, { foreignKey: 'contactId', as: 'addresses' });

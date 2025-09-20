@@ -6,7 +6,8 @@ const { validateRequest } = require('../middleware/validation.middleware');
 const { 
   createContactSchema, 
   updateContactSchema, 
-  contactQuerySchema 
+  contactQuerySchema,
+  contactParamsSchema 
 } = require('../validations/contacts.validation');
 
 const router = express.Router();
@@ -78,7 +79,11 @@ router.get('/code/:code', contactsController.getContactByCode);
  * @desc    Get contact by ID
  * @access  Private
  */
-router.get('/:id', contactsController.getContactById);
+router.get(
+  '/:id', 
+  validateRequest(contactParamsSchema, 'params'),
+  contactsController.getContactById
+);
 
 /**
  * @route   PUT /api/v1/contacts/:id
@@ -87,6 +92,7 @@ router.get('/:id', contactsController.getContactById);
  */
 router.put(
   '/:id',
+  validateRequest(contactParamsSchema, 'params'),
   validateRequest(updateContactSchema),
   contactsController.updateContact
 );
@@ -96,6 +102,10 @@ router.put(
  * @desc    Delete contact (soft delete)
  * @access  Private
  */
-router.delete('/:id', contactsController.deleteContact);
+router.delete(
+  '/:id', 
+  validateRequest(contactParamsSchema, 'params'),
+  contactsController.deleteContact
+);
 
 module.exports = router;

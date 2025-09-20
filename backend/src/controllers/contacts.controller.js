@@ -1,5 +1,5 @@
 const contactsService = require('../services/contacts.service');
-const { successResponse, errorResponse } = require('../utils/response');
+const { sendSuccessResponse, sendErrorResponse } = require('../utils/response');
 const { AppError } = require('../utils/appError');
 
 class ContactsController {
@@ -11,7 +11,7 @@ class ContactsController {
       const { organizationId } = req.user;
       const contact = await contactsService.createContact(req.body, organizationId);
       
-      return successResponse(res, contact, 'Contact created successfully', 201);
+      return sendSuccessResponse(res, 201, 'Contact created successfully', contact);
     } catch (error) {
       return next(error);
     }
@@ -35,7 +35,7 @@ class ContactsController {
 
       const result = await contactsService.getContacts(organizationId, options);
       
-      return successResponse(res, result, 'Contacts retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Contacts retrieved successfully', result);
     } catch (error) {
       return next(error);
     }
@@ -51,7 +51,7 @@ class ContactsController {
       
       const contact = await contactsService.getContactById(id, organizationId);
       
-      return successResponse(res, contact, 'Contact retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Contact retrieved successfully', contact);
     } catch (error) {
       return next(error);
     }
@@ -67,7 +67,7 @@ class ContactsController {
       
       const contact = await contactsService.getContactByCode(code, organizationId);
       
-      return successResponse(res, contact, 'Contact retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Contact retrieved successfully', contact);
     } catch (error) {
       return next(error);
     }
@@ -83,7 +83,7 @@ class ContactsController {
       
       const contact = await contactsService.updateContact(id, req.body, organizationId);
       
-      return successResponse(res, contact, 'Contact updated successfully');
+      return sendSuccessResponse(res, 200, 'Contact updated successfully', contact);
     } catch (error) {
       return next(error);
     }
@@ -99,7 +99,7 @@ class ContactsController {
       
       const result = await contactsService.deleteContact(id, organizationId);
       
-      return successResponse(res, result, 'Contact deleted successfully');
+      return sendSuccessResponse(res, 200, 'Contact deleted successfully', result);
     } catch (error) {
       return next(error);
     }
@@ -114,7 +114,7 @@ class ContactsController {
       
       const stats = await contactsService.getContactStats(organizationId);
       
-      return successResponse(res, stats, 'Contact statistics retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Contact statistics retrieved successfully', stats);
     } catch (error) {
       return next(error);
     }
@@ -133,7 +133,7 @@ class ContactsController {
 
       const result = await contactsService.getContacts(organizationId, options);
       
-      return successResponse(res, result, 'Customers retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Customers retrieved successfully', result);
     } catch (error) {
       return next(error);
     }
@@ -152,7 +152,7 @@ class ContactsController {
 
       const result = await contactsService.getContacts(organizationId, options);
       
-      return successResponse(res, result, 'Vendors retrieved successfully');
+      return sendSuccessResponse(res, 200, 'Vendors retrieved successfully', result);
     } catch (error) {
       return next(error);
     }

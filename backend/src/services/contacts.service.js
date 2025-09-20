@@ -1,4 +1,4 @@
-const { Contact, ContactAddress, sequelize } = require('../models');
+const { Contact, Address, sequelize } = require('../models');
 const { AppError } = require('../utils/appError');
 const { generateDocumentNumber } = require('../utils/sequences');
 const { Op } = require('sequelize');
@@ -15,7 +15,8 @@ class ContactService {
       if (!data.contactCode) {
         const prefix = data.contactType === 'customer' ? 'CUST' : 
                       data.contactType === 'vendor' ? 'VEND' : 'CONT';
-        data.contactCode = await generateDocumentNumber(organizationId, prefix);
+        const result = await generateDocumentNumber(organizationId, prefix);
+        data.contactCode = result.documentNumber;
       }
 
       // Validate unique contact code within organization
@@ -42,7 +43,7 @@ class ContactService {
       // Create addresses if provided
       if (data.addresses && Array.isArray(data.addresses)) {
         const addressPromises = data.addresses.map(address => 
-          ContactAddress.create({
+          Address.create({
             ...address,
             contactId: contact.id,
             organizationId
@@ -68,11 +69,12 @@ class ContactService {
     const contact = await Contact.findOne({
       where: {
         id: contactId,
-        organizationId
+        organizationId,
+        isActive: true
       },
       include: [
         {
-          model: ContactAddress,
+          model: Address,
           as: 'addresses'
         }
       ]
@@ -95,12 +97,28 @@ class ContactService {
       search,
       contactType,
       isActive,
-      sortBy = 'createdAt',
+      sortBy = 'created_at',
       sortOrder = 'DESC'
     } = options;
 
     const offset = (page - 1) * limit;
     const whereCondition = { organizationId };
+
+    // Map sortBy to actual database column names
+    const sortFieldMap = {
+      'createdAt': 'created_at',
+      'created_at': 'created_at',
+      'contactName': 'name',
+      'name': 'name',
+      'contactType': 'contact_type',
+      'contact_type': 'contact_type',
+      'email': 'email',
+      'phone': 'phone',
+      'isActive': 'is_active',
+      'is_active': 'is_active'
+    };
+
+    const actualSortBy = sortFieldMap[sortBy] || 'created_at';
 
     // Add filters
     if (search) {
@@ -122,13 +140,15 @@ class ContactService {
 
     const { count, rows } = await Contact.findAndCountAll({
       where: whereCondition,
-      include: [
-        {
-          model: ContactAddress,
-          as: 'addresses'
-        }
-      ],
-      order: [[sortBy, sortOrder]],
+      // TODO: Fix Address association issue
+      // include: [
+      //   {
+      //     model: Address,
+      //     as: 'addresses',
+      //     required: false
+      //   }
+      // ],
+      order: [[actualSortBy, sortOrder]],
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -137,9 +157,9 @@ class ContactService {
       contacts: rows,
       pagination: {
         total: count,
-        page: parseInt(page),
+        currentPage: parseInt(page),
         limit: parseInt(limit),
-        pages: Math.ceil(count / limit)
+        totalPages: Math.ceil(count / limit)
       }
     };
   }
@@ -183,7 +203,7 @@ class ContactService {
       // Update addresses if provided
       if (data.addresses && Array.isArray(data.addresses)) {
         // Delete existing addresses
-        await ContactAddress.destroy({
+        await Address.destroy({
           where: {
             contactId: contact.id,
             organizationId
@@ -193,7 +213,7 @@ class ContactService {
 
         // Create new addresses
         const addressPromises = data.addresses.map(address => 
-          ContactAddress.create({
+          Address.create({
             ...address,
             contactId: contact.id,
             organizationId
@@ -246,7 +266,7 @@ class ContactService {
       },
       include: [
         {
-          model: ContactAddress,
+          model: Address,
           as: 'addresses'
         }
       ]

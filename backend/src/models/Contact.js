@@ -17,9 +17,15 @@ const Contact = sequelize.define('Contact', {
     allowNull: true,
     field: 'uuid_char'
   },
-  name: {
+  contactName: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: false,
+    field: 'name'
+  },
+  contactCode: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'contact_code'
   },
   contactType: {
     type: DataTypes.ENUM('Customer', 'Vendor', 'Both'),
@@ -38,6 +44,16 @@ const Contact = sequelize.define('Contact', {
     type: DataTypes.STRING(32),
     allowNull: true
   },
+  isCompany: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'is_company'
+  },
+  vatNumber: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'vat_number'
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
@@ -48,6 +64,19 @@ const Contact = sequelize.define('Contact', {
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: false
+}).addHook('afterFind', (instances) => {
+  // Add 'name' alias for 'contactName' in responses
+  const addNameAlias = (instance) => {
+    if (instance && instance.dataValues) {
+      instance.dataValues.name = instance.dataValues.contactName;
+    }
+  };
+
+  if (Array.isArray(instances)) {
+    instances.forEach(addNameAlias);
+  } else if (instances) {
+    addNameAlias(instances);
+  }
 });
 
 module.exports = Contact;

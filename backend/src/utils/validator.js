@@ -39,6 +39,7 @@ const userSchema = {
   }),
   
   update: Joi.object({
+    email: Joi.string().email().optional(),
     firstName: Joi.string().max(100).optional(),
     lastName: Joi.string().max(100).optional(),
     phone: Joi.string().max(30).optional(),
