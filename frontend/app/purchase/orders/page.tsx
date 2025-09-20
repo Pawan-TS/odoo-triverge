@@ -14,16 +14,16 @@ export default function PurchaseOrdersPage() {
       <div className="md:ml-64 flex flex-col min-h-screen relative z-10">
         <Header />
 
-        <main className="flex-1 p-4 md:p-6 space-y-6">
-          <div className="flex items-center justify-between">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
-              <ShoppingBag className="h-8 w-8 text-primary" />
+              <ShoppingBag className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               <div>
-                <h1 className="text-3xl font-bold">Purchase Orders</h1>
-                <p className="text-muted-foreground">Manage your purchase orders and vendor requests</p>
+                <h1 className="text-2xl sm:text-3xl font-bold">Purchase Orders</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">Manage your purchase orders and vendor requests</p>
               </div>
             </div>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               New Purchase Order
             </Button>

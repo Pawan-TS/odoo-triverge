@@ -89,13 +89,13 @@ export default function PurchasesPage() {
       <div className="md:ml-64 flex flex-col min-h-screen relative z-10">
         <Header />
 
-        <main className="flex-1 p-4 md:p-6">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-2">Purchases</h1>
-            <p className="text-muted-foreground">Manage your purchase orders and vendor bills</p>
+        <main className="flex-1 p-3 sm:p-4 md:p-6">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Purchases</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Manage your purchase orders and vendor bills</p>
           </div>
 
-          <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between">
+          <div className="mb-4 sm:mb-6 flex flex-col gap-3 sm:flex-row sm:gap-4 sm:justify-between">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -105,48 +105,48 @@ export default function PurchasesPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 New Purchase Order
               </Button>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <FileText className="mr-2 h-4 w-4" />
                 New Bill
               </Button>
             </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="orders">Purchase Orders</TabsTrigger>
-              <TabsTrigger value="bills">Vendor Bills</TabsTrigger>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+            <TabsList className="w-full sm:w-auto">
+              <TabsTrigger value="orders" className="flex-1 sm:flex-none">Purchase Orders</TabsTrigger>
+              <TabsTrigger value="bills" className="flex-1 sm:flex-none">Vendor Bills</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="orders" className="space-y-4">
-              <div className="grid gap-4">
+            <TabsContent value="orders" className="space-y-3 sm:space-y-4">
+              <div className="grid gap-3 sm:gap-4">
                 {filteredOrders.map((order) => (
                   <Card key={order.id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-lg">{order.id}</h3>
-                          <p className="text-muted-foreground">{order.vendor}</p>
-                          <p className="text-sm text-muted-foreground">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-base sm:text-lg truncate">{order.id}</h3>
+                          <p className="text-sm sm:text-base text-muted-foreground truncate">{order.vendor}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             Date: {order.date} • Items: {order.items}
                           </p>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="text-right">
-                            <p className="font-semibold text-lg">{order.amount}</p>
-                            <Badge variant={getStatusColor(order.status) as any}>{order.status}</Badge>
+                        <div className="flex items-center justify-between sm:justify-end sm:space-x-4">
+                          <div className="text-left sm:text-right">
+                            <p className="font-semibold text-base sm:text-lg">₹{order.amount.replace('$', '')}</p>
+                            <Badge variant={getStatusColor(order.status) as any} className="text-xs">{order.status}</Badge>
                           </div>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
+                          <div className="flex space-x-1 sm:space-x-2">
+                            <Button variant="outline" size="sm" className="h-8 w-8 sm:h-9 sm:w-9 p-0">
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
+                            <Button variant="outline" size="sm" className="h-8 w-8 sm:h-9 sm:w-9 p-0">
+                              <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           </div>
                         </div>
@@ -157,31 +157,31 @@ export default function PurchasesPage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="bills" className="space-y-4">
-              <div className="grid gap-4">
+            <TabsContent value="bills" className="space-y-3 sm:space-y-4">
+              <div className="grid gap-3 sm:gap-4">
                 {filteredBills.map((bill) => (
                   <Card key={bill.id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-lg">{bill.id}</h3>
-                          <p className="text-muted-foreground">{bill.vendor}</p>
-                          <p className="text-sm text-muted-foreground">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-base sm:text-lg truncate">{bill.id}</h3>
+                          <p className="text-sm sm:text-base text-muted-foreground truncate">{bill.vendor}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             Date: {bill.date} • Due: {bill.dueDate}
                           </p>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="text-right">
-                            <p className="font-semibold text-lg">{bill.amount}</p>
-                            <p className="text-sm text-muted-foreground">Balance: {bill.balance}</p>
-                            <Badge variant={getStatusColor(bill.status) as any}>{bill.status}</Badge>
+                        <div className="flex items-center justify-between sm:justify-end sm:space-x-4">
+                          <div className="text-left sm:text-right">
+                            <p className="font-semibold text-base sm:text-lg">₹{bill.amount.replace('$', '')}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Balance: ₹{bill.balance.replace('$', '')}</p>
+                            <Badge variant={getStatusColor(bill.status) as any} className="text-xs mt-1">{bill.status}</Badge>
                           </div>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
+                          <div className="flex space-x-1 sm:space-x-2">
+                            <Button variant="outline" size="sm" className="h-8 w-8 sm:h-9 sm:w-9 p-0">
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
+                            <Button variant="outline" size="sm" className="h-8 w-8 sm:h-9 sm:w-9 p-0">
+                              <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           </div>
                         </div>
