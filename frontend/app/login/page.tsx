@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Building2 } from "lucide-react"
+import { authApi } from "@/lib/api"
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -41,13 +42,25 @@ export default function LoginPage() {
       return
     }
 
-    // Simulate login process
-    setTimeout(() => {
-      // For demo purposes, accept any credentials
-      localStorage.setItem("isAuthenticated", "true")
-      localStorage.setItem("userRole", "admin")
-      router.push("/dashboard")
-    }, 1000)
+    try {
+      // Use actual API authentication
+      const response = await authApi.login(formData.loginId, formData.password)
+      
+      if (response.success) {
+        // Set authentication state for backward compatibility
+        localStorage.setItem("isAuthenticated", "true")
+        router.push("/dashboard")
+      } else {
+        setErrors({ general: response.message || "Login failed" })
+      }
+    } catch (error) {
+      console.error("Login error:", error)
+      setErrors({ 
+        general: error instanceof Error ? error.message : "An error occurred during login" 
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -105,6 +118,12 @@ export default function LoginPage() {
                 </div>
                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
+
+              {errors.general && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <p className="text-sm text-destructive">{errors.general}</p>
+                </div>
+              )}
 
               <div className="flex items-center justify-between">
                 <Link href="/forgot-password" className="text-sm text-primary hover:underline">

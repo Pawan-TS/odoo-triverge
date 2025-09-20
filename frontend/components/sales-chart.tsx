@@ -1,8 +1,7 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
+import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts"
 
 const chartData = [
   { month: "Jan", sales: 12000, expenses: 8000 },
@@ -25,44 +24,30 @@ export function SalesChart() {
         </CardDescription>
       </CardHeader>
       <CardContent className="p-3 sm:p-6">
-        <ChartContainer
-          config={{
-            sales: {
-              label: "Sales",
-              color: "hsl(var(--chart-1))",
-            },
-            expenses: {
-              label: "Expenses",
-              color: "hsl(var(--chart-4))",
-            },
-          }}
-          className="h-[250px] sm:h-[300px] w-full"
-        >
+        <div className="h-[250px] sm:h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis dataKey="month" fontSize={12} tickMargin={5} />
               <YAxis fontSize={12} tickMargin={5} width={50} />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <Tooltip />
               <Line
                 type="monotone"
                 dataKey="sales"
-                stroke="var(--color-sales)"
+                stroke="#8884d8"
                 strokeWidth={2}
                 name="Sales"
-                className="animate-in fade-in duration-1000"
               />
               <Line
                 type="monotone"
                 dataKey="expenses"
-                stroke="var(--color-expenses)"
+                stroke="#82ca9d"
                 strokeWidth={2}
                 name="Expenses"
-                className="animate-in fade-in duration-1000 delay-300"
               />
             </LineChart>
           </ResponsiveContainer>
-        </ChartContainer>
+        </div>
       </CardContent>
     </Card>
   )

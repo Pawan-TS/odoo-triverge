@@ -11,14 +11,17 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, EyeOff, Building2, CheckCircle, XCircle } from "lucide-react"
+import { authApi } from "../../lib/api"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    loginId: "",
+    firstName: "",
+    lastName: "",
     email: "",
+    phone: "",
+    organizationName: "",
     password: "",
     confirmPassword: "",
-    role: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -52,11 +55,14 @@ export default function RegisterPage() {
     // Validation
     const newErrors: Record<string, string> = {}
 
-    // Login ID validation
-    if (!formData.loginId.trim()) {
-      newErrors.loginId = "Login ID is required"
-    } else if (formData.loginId.length < 6 || formData.loginId.length > 12) {
-      newErrors.loginId = "Login ID must be between 6-12 characters"
+    // First name validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First name is required"
+    }
+
+    // Last name validation
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required"
     }
 
     // Email validation
@@ -64,6 +70,18 @@ export default function RegisterPage() {
       newErrors.email = "Email is required"
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address"
+    }
+
+    // Phone validation
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required"
+    } else if (!/^\+?[\d\s\-\(\)]{10,}$/.test(formData.phone)) {
+      newErrors.phone = "Please enter a valid phone number"
+    }
+
+    // Organization name validation
+    if (!formData.organizationName.trim()) {
+      newErrors.organizationName = "Organization name is required"
     }
 
     // Password validation
@@ -80,23 +98,42 @@ export default function RegisterPage() {
       newErrors.confirmPassword = "Passwords do not match"
     }
 
-    // Role validation
-    if (!formData.role) {
-      newErrors.role = "Please select a role"
-    }
-
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       setIsLoading(false)
       return
     }
 
-    // Simulate registration process
-    setTimeout(() => {
-      localStorage.setItem("isAuthenticated", "true")
-      localStorage.setItem("userRole", formData.role)
-      router.push("/dashboard")
-    }, 1000)
+    try {
+      // Call the registration API
+      const response = await authApi.register({
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        organizationName: formData.organizationName,
+        phone: formData.phone,
+      })
+
+      if (response.success && response.data) {
+        // Store authentication data
+        localStorage.setItem('authToken', response.data.token)
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+        localStorage.setItem('isAuthenticated', 'true')
+        
+        // Redirect to dashboard
+        router.push('/dashboard')
+      } else {
+        setErrors({ general: response.message || 'Registration failed' })
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error)
+      setErrors({ 
+        general: error.response?.data?.message || error.message || 'Registration failed. Please try again.' 
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -120,18 +157,64 @@ export default function RegisterPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {errors.general && (
+                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+                  {errors.general}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="Enter first name"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    className={errors.firstName ? "border-destructive" : ""}
+                  />
+                  {errors.firstName && <p className="text-sm text-destructive">{errors.firstName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Enter last name"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    className={errors.lastName ? "border-destructive" : ""}
+                  />
+                  {errors.lastName && <p className="text-sm text-destructive">{errors.lastName}</p>}
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="loginId">Login ID</Label>
+                <Label htmlFor="organizationName">Organization Name</Label>
                 <Input
-                  id="loginId"
+                  id="organizationName"
                   type="text"
-                  placeholder="Enter login ID (6-12 characters)"
-                  value={formData.loginId}
-                  onChange={(e) => setFormData({ ...formData, loginId: e.target.value })}
-                  className={errors.loginId ? "border-destructive" : ""}
+                  placeholder="Enter your organization name"
+                  value={formData.organizationName}
+                  onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
+                  className={errors.organizationName ? "border-destructive" : ""}
                 />
-                {errors.loginId && <p className="text-sm text-destructive">{errors.loginId}</p>}
-                <p className="text-xs text-muted-foreground">Must be unique and 6-12 characters long</p>
+                {errors.organizationName && <p className="text-sm text-destructive">{errors.organizationName}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className={errors.phone ? "border-destructive" : ""}
+                />
+                {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
               </div>
 
               <div className="space-y-2">
@@ -236,32 +319,6 @@ export default function RegisterPage() {
                   </button>
                 </div>
                 {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role">Role Selection (User Rights)</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                  <SelectTrigger className={errors.role ? "border-destructive" : ""}>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="invoicing">
-                      <div>
-                        <div className="font-medium">Invoicing User</div>
-                        <div className="text-xs text-muted-foreground">
-                          Cannot modify master data, but can create transactions
-                        </div>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="admin">
-                      <div>
-                        <div className="font-medium">Admin</div>
-                        <div className="text-xs text-muted-foreground">All access rights</div>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>

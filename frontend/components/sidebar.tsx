@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { authApi } from "../lib/api"
 import {
   LayoutDashboard,
   Users,
@@ -95,10 +96,17 @@ export function Sidebar({ className }: SidebarProps) {
     },
   ]
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated")
-    localStorage.removeItem("userRole")
-    router.push("/login")
+  const handleLogout = async () => {
+    try {
+      // Use the proper API logout method
+      await authApi.logout()
+      // Navigate to login page
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+      // Even if API logout fails, navigate to login
+      router.push("/login")
+    }
   }
 
   return (
