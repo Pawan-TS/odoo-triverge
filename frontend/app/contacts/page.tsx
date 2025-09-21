@@ -524,9 +524,9 @@ export default function ContactsPage() {
   };
 
   // Handle export
-  const handleExport = async (format: 'csv' | 'excel') => {
+  const handleExport = async () => {
     try {
-      const response = await contactsApi.export(format, {
+      const response = await contactsApi.export('csv', {
         contactType: activeTab === 'all' ? undefined : activeTab.slice(0, -1), // customers -> customer
         search: searchTerm
       });
@@ -535,13 +535,13 @@ export default function ContactsPage() {
         window.open(response.data.downloadUrl, '_blank');
         toast({
           title: "Success",
-          description: "Export started. Download will begin shortly.",
+          description: "CSV export started. Download will begin shortly.",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to export contacts",
+        description: "Failed to export contacts to CSV",
         variant: "destructive",
       });
     }
@@ -654,44 +654,16 @@ export default function ContactsPage() {
                   <p className="text-sm sm:text-base text-gray-600">Manage your customers and vendors</p>
                 </div>
                 <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
-                  {/* Export buttons - hidden on mobile, shown as icons on tablet */}
-                  <div className="hidden sm:flex sm:space-x-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleExport('csv')}
-                      className="flex items-center space-x-2"
-                      size="sm"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span className="hidden md:inline">Export CSV</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleExport('excel')}
-                      className="flex items-center space-x-2"
-                      size="sm"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span className="hidden md:inline">Export Excel</span>
-                    </Button>
-                  </div>
-                  
-                  {/* Mobile export dropdown */}
-                  <div className="sm:hidden">
-                    <Select onValueChange={(value) => handleExport(value as 'csv' | 'excel')}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Export" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="csv">
-                          Export CSV
-                        </SelectItem>
-                        <SelectItem value="excel">
-                          Export Excel
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Export CSV button - responsive */}
+                  <Button 
+                    variant="outline" 
+                    onClick={handleExport}
+                    className="flex items-center justify-center space-x-2 w-full sm:w-auto"
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Export CSV</span>
+                  </Button>
                   
                   <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                     <Button 

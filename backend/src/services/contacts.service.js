@@ -5,6 +5,52 @@ const { Op } = require('sequelize');
 
 class ContactService {
   /**
+   * Get contact statistics for organization
+   */
+  async getContactStatistics(organizationId) {
+    console.log('📊 ContactService.getContactStatistics called for organizationId:', organizationId);
+    
+    try {
+      // Get statistics using raw SQL for better performance
+      const [results] = await sequelize.query(`
+        SELECT 
+          COUNT(*) as total_contacts,
+          COUNT(CASE WHEN contact_type = 'Customer' OR contact_type = 'Both' THEN 1 END) as total_customers,
+          COUNT(CASE WHEN contact_type = 'Vendor' OR contact_type = 'Both' THEN 1 END) as total_vendors,
+          COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_contacts,
+          COALESCE(SUM(CASE WHEN pb.outstanding_amount > 0 THEN pb.outstanding_amount ELSE 0 END), 0) as total_outstanding
+        FROM contacts c
+        LEFT JOIN partner_balances pb ON c.id = pb.contact_id AND c.organization_id = pb.organization_id
+        WHERE c.organization_id = :organizationId
+      `, {
+        replacements: { organizationId },
+        type: sequelize.QueryTypes.SELECT
+      });
+
+      const stats = results[0] || {
+        total_contacts: 0,
+        total_customers: 0,
+        total_vendors: 0,
+        active_contacts: 0,
+        total_outstanding: 0
+      };
+
+      console.log('📊 Contact statistics:', JSON.stringify(stats, null, 2));
+
+      return {
+        totalContacts: parseInt(stats.total_contacts),
+        totalCustomers: parseInt(stats.total_customers),
+        totalVendors: parseInt(stats.total_vendors),
+        activeContacts: parseInt(stats.active_contacts),
+        totalOutstanding: parseFloat(stats.total_outstanding)
+      };
+    } catch (error) {
+      console.error('❌ Error in getContactStatistics:', error);
+      throw new AppError('Failed to fetch contact statistics', 500);
+    }
+  }
+
+  /**
    * Create a new contact
    */
   async createContact(data, organizationId) {

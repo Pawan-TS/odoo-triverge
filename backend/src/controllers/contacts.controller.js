@@ -5,6 +5,24 @@ const { Contact } = require('../models');
 
 class ContactsController {
   /**
+   * Get contact statistics
+   */
+  async getContactStatistics(req, res, next) {
+    try {
+      console.log('📊 getContactStatistics called for user:', req.user?.email);
+      
+      const statistics = await contactsService.getContactStatistics(req.user.organizationId);
+      
+      console.log('📊 Statistics result:', statistics);
+      
+      return sendSuccessResponse(res, statistics, 'Contact statistics retrieved successfully');
+    } catch (error) {
+      console.error('❌ Error in getContactStatistics:', error);
+      return sendErrorResponse(res, error.message, error.statusCode || 500);
+    }
+  }
+
+  /**
    * Debug endpoint to check all contacts in database
    */
   async debugContacts(req, res, next) {

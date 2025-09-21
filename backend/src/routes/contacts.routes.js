@@ -17,6 +17,16 @@ router.use(authMiddleware);
 router.use(orgMiddleware);
 
 /**
+ * @route   GET /api/v1/contacts/statistics
+ * @desc    Get contact statistics (total customers, vendors, active contacts)
+ * @access  Private
+ */
+router.get(
+  '/statistics',
+  contactsController.getContactStatistics
+);
+
+/**
  * @route   POST /api/v1/contacts
  * @desc    Create a new contact
  * @access  Private

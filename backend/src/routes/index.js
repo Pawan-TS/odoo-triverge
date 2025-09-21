@@ -3,13 +3,14 @@ const authRoutes = require('./auth.routes');
 const contactsRoutes = require('./contacts.routes');
 const productsRoutes = require('./products.routes');
 const productCategoriesRoutes = require('./productCategories.routes');
+const salesOrdersRoutes = require('./salesOrders.routes');
+const invoicesRoutes = require('./invoices.routes');
+const paymentsRoutes = require('./payments.routes');
 // Import other route modules as they are created
 // const usersRoutes = require('./users.routes');
 // const taxesRoutes = require('./taxes.routes');
 // const coaRoutes = require('./coa.routes');
-// const salesRoutes = require('./sales.routes');
 // const purchaseRoutes = require('./purchase.routes');
-// const paymentsRoutes = require('./payments.routes');
 // const journalRoutes = require('./journal.routes');
 // const stockRoutes = require('./stock.routes');
 // const reportsRoutes = require('./reports.routes');
@@ -22,16 +23,16 @@ router.use('/auth', authRoutes);
 router.use('/contacts', contactsRoutes);
 router.use('/products', productsRoutes);
 router.use('/product-categories', productCategoriesRoutes);
+router.use('/sales-orders', salesOrdersRoutes);
+router.use('/invoices', invoicesRoutes);
+router.use('/payments', paymentsRoutes);
 
 // Additional routes will be added here as they are implemented
 // router.use('/users', usersRoutes);
 // router.use('/taxes', taxesRoutes);
 // router.use('/chart-of-accounts', coaRoutes);
-// router.use('/sales-orders', salesRoutes);
-// router.use('/invoices', invoicesRoutes);
 // router.use('/purchase-orders', purchaseRoutes);
 // router.use('/vendor-bills', vendorBillsRoutes);
-// router.use('/payments', paymentsRoutes);
 // router.use('/journal-entries', journalRoutes);
 // router.use('/stock', stockRoutes);
 // router.use('/reports', reportsRoutes);
