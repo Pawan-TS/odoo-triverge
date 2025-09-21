@@ -39,6 +39,20 @@ router.get(
 );
 
 /**
+ * @route   GET /api/v1/contacts/debug
+ * @desc    Debug endpoint to check contacts in database
+ * @access  Private
+ */
+router.get('/debug', contactsController.debugContacts);
+
+/**
+ * @route   GET /api/v1/contacts/all-debug
+ * @desc    Get ALL contacts regardless of organization (for debugging)
+ * @access  Private
+ */
+router.get('/all-debug', contactsController.getAllContactsDebug);
+
+/**
  * @route   GET /api/v1/contacts/stats
  * @desc    Get contact statistics
  * @access  Private

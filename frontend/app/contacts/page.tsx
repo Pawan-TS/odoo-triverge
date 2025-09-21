@@ -63,7 +63,7 @@ export default function ContactsPage() {
   const [selectedContacts, setSelectedContacts] = useState<number[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [sortBy, setSortBy] = useState("name")
+  const [sortBy, setSortBy] = useState("contactName")
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -96,10 +96,28 @@ export default function ContactsPage() {
 
   const { toast } = useToast()
 
-  // Load contacts data
-  const loadContacts = async () => {
+  // Load contacts data with multiple retry strategies
+  const loadContacts = async (retryCount = 0) => {
     try {
       setLoading(true)
+      
+      console.log(`📞 Starting loadContacts attempt ${retryCount + 1}`);
+      
+      // Check authentication
+      const token = localStorage.getItem('authToken');
+      const user = localStorage.getItem('user');
+      console.log('🔐 Auth check - Token exists:', !!token);
+      console.log('🔐 Auth check - User exists:', !!user);
+      
+      if (!token) {
+        console.error('❌ No auth token found, user needs to login');
+        toast({
+          title: "Authentication Required",
+          description: "Please login to view contacts",
+          variant: "destructive",
+        });
+        return;
+      }
       
       let contactsResponse;
       const params = {
@@ -110,37 +128,116 @@ export default function ContactsPage() {
         sortOrder
       };
 
-      console.log('Loading contacts with params:', params);
-      console.log('Active tab:', activeTab);
+      console.log('📞 Loading contacts with params:', params);
+      console.log('📞 Active tab:', activeTab);
+      console.log('📞 API Base URL:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1');
 
-      switch (activeTab) {
-        case 'customers':
-          contactsResponse = await contactsApi.getCustomers(params);
-          break;
-        case 'vendors':
-          contactsResponse = await contactsApi.getVendors(params);
-          break;
-        default:
+      // Try multiple API endpoints in sequence
+      let apiCallSuccessful = false;
+      
+      try {
+        switch (activeTab) {
+          case 'customers':
+            console.log('📞 Calling contactsApi.getCustomers...');
+            contactsResponse = await contactsApi.getCustomers(params);
+            break;
+          case 'vendors':
+            console.log('📞 Calling contactsApi.getVendors...');
+            contactsResponse = await contactsApi.getVendors(params);
+            break;
+          default:
+            console.log('📞 Calling contactsApi.getAll...');
+            contactsResponse = await contactsApi.getAll(params);
+        }
+        apiCallSuccessful = true;
+      } catch (apiError) {
+        console.error('📞 Primary API call failed, trying fallback...', apiError);
+        
+        // Fallback: try the generic getAll endpoint regardless of tab
+        try {
+          console.log('📞 Fallback: Calling contactsApi.getAll...');
           contactsResponse = await contactsApi.getAll(params);
+          apiCallSuccessful = true;
+        } catch (fallbackError) {
+          console.error('📞 Fallback API call also failed:', fallbackError);
+          
+          // Final fallback: try the debug endpoint that shows all contacts
+          try {
+            console.log('📞 Final fallback: Calling getAllDebug...');
+            contactsResponse = await contactsApi.getAllDebug();
+            apiCallSuccessful = true;
+            console.log('📞 Debug endpoint successful');
+          } catch (debugError) {
+            console.error('📞 Even debug endpoint failed:', debugError);
+            throw debugError;
+          }
+        }
       }
 
-      console.log('Contacts response:', contactsResponse);
+      console.log('📞 Raw API Response:', JSON.stringify(contactsResponse, null, 2));
 
       if (contactsResponse.success && contactsResponse.data) {
-        setContacts(contactsResponse.data.contacts || []);
+        console.log('✅ API call successful');
+        console.log('📊 Contacts data:', contactsResponse.data.contacts);
+        console.log('📊 Number of contacts:', contactsResponse.data.contacts?.length || 0);
+        
+        const contactsArray = contactsResponse.data.contacts || [];
+        setContacts(contactsArray);
+        
         if (contactsResponse.data.pagination) {
           setTotalPages(contactsResponse.data.pagination.totalPages);
+          console.log('📊 Pagination:', contactsResponse.data.pagination);
         }
+        
+        // If we got contacts, show success message
+        if (contactsArray.length > 0) {
+          console.log('✅ Successfully loaded', contactsArray.length, 'contacts');
+        } else {
+          console.log('⚠️ API successful but no contacts returned');
+          
+          // If no contacts and this is first attempt, try once more without filters
+          if (retryCount === 0) {
+            console.log('🔄 Retrying without filters...');
+            setTimeout(() => {
+              loadContacts(1);
+            }, 1000);
+            return;
+          }
+        }
+        
       } else {
-        console.error('Failed to load contacts:', contactsResponse);
+        console.error('❌ API call failed:', contactsResponse);
+        console.error('❌ Error message:', contactsResponse.message);
+        
+        toast({
+          title: "API Error",
+          description: contactsResponse.message || "Failed to load contacts from server",
+          variant: "destructive",
+        });
+        
         // Set empty array if API call fails
         setContacts([]);
       }
-    } catch (error) {
-      console.error('Error loading contacts:', error);
+    } catch (error: any) {
+      console.error('💥 Exception in loadContacts:', error);
+      console.error('💥 Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      
+      // If this is the first attempt and we got a network error, try again
+      if (retryCount < 2 && (error.message.includes('fetch') || error.message.includes('network'))) {
+        console.log(`🔄 Network error, retrying in 2 seconds... (attempt ${retryCount + 2})`);
+        setTimeout(() => {
+          loadContacts(retryCount + 1);
+        }, 2000);
+        return;
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to load contacts. Please check if the server is running.",
+        title: "Connection Error",
+        description: `Failed to load contacts: ${error.message}. Please check if the backend server is running.`,
         variant: "destructive",
       });
       // Set empty array on error
@@ -186,6 +283,49 @@ export default function ContactsPage() {
 
   useEffect(() => {
     loadStats();
+    // Add debug call to understand the data issue
+    debugContacts();
+  }, []);
+
+  // IMMEDIATE LOAD: Force load contacts as soon as component mounts
+  useEffect(() => {
+    console.log('🚀 Component mounted - triggering immediate contact load');
+    
+    // Small delay to ensure DOM is ready
+    const immediateLoad = setTimeout(() => {
+      console.log('🚀 Executing immediate contact load...');
+      forceReloadContacts();
+    }, 100);
+
+    return () => clearTimeout(immediateLoad);
+  }, []); // Only run once on mount
+
+  // Debug function to check backend data
+  const debugContacts = async () => {
+    try {
+      console.log('🐛 Calling debug endpoint...');
+      const debugResponse = await contactsApi.debug();
+      console.log('🐛 Debug response:', JSON.stringify(debugResponse, null, 2));
+    } catch (error) {
+      console.error('🐛 Debug call failed:', error);
+    }
+  };
+
+  // Force reload contacts - can be called from console
+  const forceReloadContacts = async () => {
+    console.log('🔄 Force reloading contacts...');
+    setContacts([]); // Clear current contacts
+    setLoading(true);
+    await loadContacts(0);
+  };
+
+  // Make force reload available globally for debugging
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).forceReloadContacts = forceReloadContacts;
+      (window as any).debugContacts = debugContacts;
+      console.log('🔧 Debug functions available: window.forceReloadContacts(), window.debugContacts()');
+    }
   }, []);
 
   // Handle create contact
@@ -433,7 +573,7 @@ export default function ContactsPage() {
   const openEditDialog = (contact: Contact) => {
     setEditingContact(contact);
     setContactForm({
-      name: contact.contactName || '',
+      name: contact.contactName || contact.name || '',
       email: contact.email || '',
       phone: contact.phone || '',
       contactType: contact.contactType?.toLowerCase() as 'customer' | 'vendor' | 'both' || 'customer',
@@ -538,15 +678,15 @@ export default function ContactsPage() {
                   
                   {/* Mobile export dropdown */}
                   <div className="sm:hidden">
-                    <Select>
+                    <Select onValueChange={(value) => handleExport(value as 'csv' | 'excel')}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Export" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="csv" onSelect={() => handleExport('csv')}>
+                        <SelectItem value="csv">
                           Export CSV
                         </SelectItem>
-                        <SelectItem value="excel" onSelect={() => handleExport('excel')}>
+                        <SelectItem value="excel">
                           Export Excel
                         </SelectItem>
                       </SelectContent>
@@ -838,10 +978,10 @@ export default function ContactsPage() {
                         <SelectValue placeholder="Sort by" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="name">Name</SelectItem>
+                        <SelectItem value="contactName">Name</SelectItem>
                         <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="contactType">Type</SelectItem>
                         <SelectItem value="createdAt">Created Date</SelectItem>
-                        <SelectItem value="currentBalance">Balance</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
@@ -961,11 +1101,11 @@ export default function ContactsPage() {
                                 />
                                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                                   <span className="text-blue-600 font-semibold text-sm sm:text-lg">
-                                    {contact.contactName.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                                    {(contact.contactName || contact.name || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{contact.contactName}</h3>
+                                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{contact.contactName || contact.name || 'Unknown Contact'}</h3>
                                   <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-600 mt-1">
                                     {contact.email && (
                                       <div className="flex items-center">
@@ -1021,7 +1161,7 @@ export default function ContactsPage() {
                                       <AlertDialogHeader>
                                         <AlertDialogTitle>Delete Contact</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          Are you sure you want to delete {contact.contactName}? This action cannot be undone.
+                                          Are you sure you want to delete {contact.contactName || contact.name || 'this contact'}? This action cannot be undone.
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>

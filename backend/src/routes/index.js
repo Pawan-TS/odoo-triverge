@@ -47,6 +47,20 @@ router.get('/health', (req, res) => {
   });
 });
 
+// Simple test endpoint to verify backend connectivity
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Backend is accessible and working',
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    url: req.url,
+    userAgent: req.get('User-Agent'),
+    origin: req.get('Origin'),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // API documentation endpoint
 router.get('/docs', (req, res) => {
   res.json({

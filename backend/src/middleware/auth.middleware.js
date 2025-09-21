@@ -47,6 +47,13 @@ const authMiddleware = async (req, res, next) => {
       organization: user.organization
     };
 
+    console.log('🔐 Auth middleware - User authenticated:', {
+      userId: user.id,
+      email: user.email,
+      organizationId: user.organizationId,
+      organizationName: user.organization?.name
+    });
+
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {

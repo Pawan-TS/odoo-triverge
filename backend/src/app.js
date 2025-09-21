@@ -32,16 +32,25 @@ class App {
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-Id']
     }));
 
-    // Rate limiting
+    // Rate limiting - Temporarily increased for development
     const limiter = rateLimit({
       windowMs: config.rateLimitWindowMs,
-      max: config.rateLimitMax,
+      max: 1000, // Increased from config.rateLimitMax to 1000 for development
       message: {
         error: 'Too many requests from this IP, please try again later',
         statusCode: 429
-      }
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
     });
-    this.app.use('/api/', limiter);
+    
+    // Only apply rate limiting in production
+    if (process.env.NODE_ENV === 'production') {
+      this.app.use('/api/', limiter);
+      console.log('🛡️ Rate limiting enabled for production');
+    } else {
+      console.log('🛡️ Rate limiting disabled for development');
+    }
 
     // Body parsing middleware
     this.app.use(express.json({ limit: '10mb' }));
