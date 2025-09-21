@@ -21,7 +21,7 @@ export function Header() {
         console.log('Header: Auth token:', localStorage.getItem('authToken') ? 'EXISTS' : 'MISSING')
         
         // First try to get user from localStorage (cached data)
-        const cachedUser = authApi.getUser()
+        const cachedUser = authApi.getCurrentUser()
         console.log('Header: Cached user:', cachedUser)
         if (cachedUser) {
           setUser(cachedUser)
@@ -31,7 +31,7 @@ export function Header() {
         if (authApi.isAuthenticated()) {
           // Then fetch fresh data from API
           console.log('Header: Fetching fresh user data from API...')
-          const response = await authApi.getCurrentUser()
+          const response = await authApi.getProfile()
           console.log('Header: API response:', response)
           if (response.success && response.data) {
             console.log('Header: Setting user data:', response.data)
@@ -43,7 +43,7 @@ export function Header() {
       } catch (error) {
         console.error("Header: Failed to load user data:", error)
         // If API call fails, try to use cached data
-        const cachedUser = authApi.getUser()
+        const cachedUser = authApi.getCurrentUser()
         if (cachedUser) {
           console.log('Header: Using cached user as fallback:', cachedUser)
           setUser(cachedUser)

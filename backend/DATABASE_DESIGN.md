@@ -4,7 +4,7 @@
 
 This document contains the full database design for the cloud-based accounting system **Shiv Accounts Pro**. The schema is designed for **multi-tenancy**, **double-entry accounting**, and **scalability**.
 
-## Entity Relationship Diagram
+## Entity Relationship Diagram 
 
 ![ER Diagram](er_diagram.png)
 
