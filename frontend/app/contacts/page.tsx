@@ -28,15 +28,23 @@ interface ContactStats {
 }
 
 interface ContactFormData {
-  name: string;
+  name: string; // This will be mapped to contactName in API calls
   email: string;
   phone: string;
-  contactType: 'customer' | 'vendor' | 'both';
+  contactType: 'customer' | 'vendor' | 'both'; // This will be mapped to proper case in API calls
   gstNumber?: string;
   panNumber?: string;
   creditLimit?: number;
   paymentTerms?: string;
-  addresses: Address[];
+  addresses: {
+    addressType: 'billing' | 'shipping' | 'both';
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  }[];
   bankDetails?: {
     bankName: string;
     accountNumber: string;
@@ -59,15 +67,26 @@ export default function ContactsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isCreating, setIsCreating] = useState(false) // Add loading state
+
+  // Debug state changes
+  useEffect(() => {
+    console.log('isCreateDialogOpen changed to:', isCreateDialogOpen);
+  }, [isCreateDialogOpen]);
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [contactForm, setContactForm] = useState<ContactFormData>({
     name: '',
     email: '',
     phone: '',
     contactType: 'customer',
+    gstNumber: '',
+    panNumber: '',
+    creditLimit: 0,
+    paymentTerms: '',
     addresses: [{
-      type: 'billing',
-      street: '',
+      addressType: 'billing',
+      addressLine1: '',
+      addressLine2: '',
       city: '',
       state: '',
       postalCode: '',
@@ -171,28 +190,118 @@ export default function ContactsPage() {
 
   // Handle create contact
   const handleCreateContact = async () => {
+    console.log('=== CREATE CONTACT BUTTON CLICKED ===');
+    console.log('Current contactForm state:', JSON.stringify(contactForm, null, 2));
+    
+    // Check authentication
+    const token = localStorage.getItem('authToken');
+    console.log('Auth token available:', !!token);
+    console.log('isCreating state:', isCreating);
+    
+    if (isCreating) {
+      console.log('Already creating, returning early');
+      return; // Prevent double clicks
+    }
+    
     try {
-      const contactData = {
-        ...contactForm,
-        type: contactForm.contactType
-      };
-      const response = await contactsApi.create(contactData);
-      if (response.success) {
+      setIsCreating(true);
+      console.log('Set isCreating to true');
+      
+      // Validate required fields
+      if (!contactForm.name.trim()) {
+        console.log('Validation failed: Name is required');
         toast({
-          title: "Success",
-          description: "Contact created successfully",
+          title: "Validation Error",
+          description: "Contact name is required",
+          variant: "destructive",
         });
+        return;
+      }
+
+      // Show loading state
+      toast({
+        title: "Creating Contact...",
+        description: "Please wait while we save your contact",
+      });
+
+      // Prepare contact data for API - exactly match backend validation schema
+      const contactData: any = {
+        contactName: contactForm.name.trim(),
+        contactType: contactForm.contactType.charAt(0).toUpperCase() + contactForm.contactType.slice(1), // 'Customer', 'Vendor', 'Both'
+      };
+
+      // Add optional fields only if they have values
+      if (contactForm.email && contactForm.email.trim()) {
+        contactData.email = contactForm.email.trim();
+      }
+      
+      if (contactForm.phone && contactForm.phone.trim()) {
+        contactData.phone = contactForm.phone.trim();
+      }
+
+      // For now, skip GST and PAN to avoid validation pattern errors
+      // TODO: Add proper pattern validation for GST and PAN numbers
+      
+      contactData.isCompany = false;
+      contactData.isActive = true;
+
+      console.log('Prepared API data:', JSON.stringify(contactData, null, 2));
+      console.log('Making API call to contactsApi.create...');
+
+      const response = await contactsApi.create(contactData);
+      
+      console.log('API Response received:', JSON.stringify(response, null, 2));
+
+      if (response.success) {
+        console.log('Success! Contact created successfully');
+        // Success notification
+        toast({
+          title: "✅ Success!",
+          description: "Contact created successfully and saved to database",
+          variant: "default",
+        });
+        
+        // Close dialog and refresh data
+        console.log('Closing dialog and refreshing data...');
         setIsCreateDialogOpen(false);
         resetForm();
         loadContacts();
         loadStats();
+      } else {
+        console.log('API call failed with response:', response);
+        // Handle API error response with detailed error message
+        const errorMessage = response.message || "Failed to create contact";
+        
+        toast({
+          title: "❌ Creation Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('ERROR in handleCreateContact:', error);
+      console.error('Error stack:', error.stack);
+      
+      // Try to extract more detailed error information
+      let errorMessage = "Failed to create contact. Please check your connection and try again.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // If it's a validation error, try to get more details
+      if (error.message?.includes('Validation failed')) {
+        errorMessage = "Validation failed - please check all required fields are properly filled.";
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to create contact",
+        title: "❌ Error",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      console.log('Setting isCreating to false');
+      setIsCreating(false); // Clear loading state
     }
   };
 
@@ -202,8 +311,14 @@ export default function ContactsPage() {
     
     try {
       const contactData = {
-        ...contactForm,
-        type: contactForm.contactType
+        contactName: contactForm.name.trim(),
+        contactType: contactForm.contactType.charAt(0).toUpperCase() + contactForm.contactType.slice(1) as 'Customer' | 'Vendor' | 'Both',
+        email: contactForm.email || undefined,
+        phone: contactForm.phone || undefined,
+        gstNumber: contactForm.gstNumber || undefined,
+        panNumber: contactForm.panNumber || undefined,
+        creditLimit: contactForm.creditLimit || undefined,
+        // Note: paymentTerms not supported in current Contact interface
       };
       const response = await contactsApi.update(editingContact.id, contactData);
       if (response.success) {
@@ -299,9 +414,14 @@ export default function ContactsPage() {
       email: '',
       phone: '',
       contactType: 'customer',
+      gstNumber: '',
+      panNumber: '',
+      creditLimit: 0,
+      paymentTerms: '',
       addresses: [{
-        type: 'billing',
-        street: '',
+        addressType: 'billing',
+        addressLine1: '',
+        addressLine2: '',
         city: '',
         state: '',
         postalCode: '',
@@ -313,23 +433,32 @@ export default function ContactsPage() {
   const openEditDialog = (contact: Contact) => {
     setEditingContact(contact);
     setContactForm({
-      name: contact.name,
+      name: contact.contactName || '',
       email: contact.email || '',
       phone: contact.phone || '',
-      contactType: contact.type,
-      gstNumber: contact.gstNumber,
-      panNumber: contact.panNumber,
-      creditLimit: contact.creditLimit,
-      paymentTerms: contact.paymentTerms,
-      addresses: contact.addresses || [{
-        type: 'billing',
-        street: '',
+      contactType: contact.contactType?.toLowerCase() as 'customer' | 'vendor' | 'both' || 'customer',
+      gstNumber: contact.gstNumber || '',
+      panNumber: contact.panNumber || '',
+      creditLimit: contact.creditLimit || 0,
+      paymentTerms: '', // Note: not available in current Contact interface
+      addresses: contact.addresses?.map(addr => ({
+        addressType: addr.addressType,
+        addressLine1: addr.addressLine1,
+        addressLine2: addr.addressLine2 || '',
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.postalCode,
+        country: addr.country || 'India'
+      })) || [{
+        addressType: 'billing',
+        addressLine1: '',
+        addressLine2: '',
         city: '',
         state: '',
         postalCode: '',
         country: 'India'
       }],
-      bankDetails: contact.bankDetails
+      // Note: bankDetails not available in current Contact interface
     });
     setIsEditDialogOpen(true);
   };
@@ -338,8 +467,9 @@ export default function ContactsPage() {
     setContactForm(prev => ({
       ...prev,
       addresses: [...prev.addresses, {
-        type: 'shipping',
-        street: '',
+        addressType: 'shipping',
+        addressLine1: '',
+        addressLine2: '',
         city: '',
         state: '',
         postalCode: '',
@@ -355,7 +485,7 @@ export default function ContactsPage() {
     }));
   };
 
-  const updateAddress = (index: number, field: keyof Address, value: string) => {
+  const updateAddress = (index: number, field: string, value: string) => {
     setContactForm(prev => ({
       ...prev,
       addresses: prev.addresses.map((addr, i) => 
@@ -371,7 +501,8 @@ export default function ContactsPage() {
         <Sidebar />
       </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content Area - add left margin to account for fixed sidebar */}
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
         <Header />
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-3 sm:p-4 lg:p-6">
@@ -423,12 +554,16 @@ export default function ContactsPage() {
                   </div>
                   
                   <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="w-full sm:w-auto flex items-center justify-center space-x-2">
-                        <Plus className="h-4 w-4" />
-                        <span>Add Contact</span>
-                      </Button>
-                    </DialogTrigger>
+                    <Button 
+                      className="w-full sm:w-auto flex items-center justify-center space-x-2"
+                      onClick={() => {
+                        console.log('Add Contact button clicked!');
+                        setIsCreateDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Contact</span>
+                    </Button>
                     <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Create New Contact</DialogTitle>
@@ -520,8 +655,8 @@ export default function ContactsPage() {
                             <Input
                               id="creditLimit"
                               type="number"
-                              value={contactForm.creditLimit || ''}
-                              onChange={(e) => setContactForm(prev => ({...prev, creditLimit: parseFloat(e.target.value) || undefined}))}
+                              value={contactForm.creditLimit?.toString() || ''}
+                              onChange={(e) => setContactForm(prev => ({...prev, creditLimit: parseFloat(e.target.value) || 0}))}
                               placeholder="Enter credit limit"
                             />
                           </div>
@@ -550,9 +685,9 @@ export default function ContactsPage() {
                             <div key={index} className="border rounded-lg p-4 mb-3 bg-gray-50">
                               <div className="flex items-center justify-between mb-3">
                                 <Select 
-                                  value={address.type} 
-                                  onValueChange={(value: 'billing' | 'shipping') => 
-                                    updateAddress(index, 'type', value)
+                                  value={address.addressType} 
+                                  onValueChange={(value: 'billing' | 'shipping' | 'both') => 
+                                    updateAddress(index, 'addressType', value)
                                   }
                                 >
                                   <SelectTrigger className="w-32">
@@ -561,6 +696,7 @@ export default function ContactsPage() {
                                   <SelectContent>
                                     <SelectItem value="billing">Billing</SelectItem>
                                     <SelectItem value="shipping">Shipping</SelectItem>
+                                    <SelectItem value="both">Both</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 
@@ -578,9 +714,14 @@ export default function ContactsPage() {
                               
                               <div className="grid grid-cols-1 gap-3">
                                 <Input
-                                  value={address.street}
-                                  onChange={(e) => updateAddress(index, 'street', e.target.value)}
+                                  value={address.addressLine1}
+                                  onChange={(e) => updateAddress(index, 'addressLine1', e.target.value)}
                                   placeholder="Street address"
+                                />
+                                <Input
+                                  value={address.addressLine2 || ''}
+                                  onChange={(e) => updateAddress(index, 'addressLine2', e.target.value)}
+                                  placeholder="Street address line 2 (optional)"
                                 />
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   <Input
@@ -616,8 +757,16 @@ export default function ContactsPage() {
                         <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="w-full sm:w-auto">
                           Cancel
                         </Button>
-                        <Button onClick={handleCreateContact} className="w-full sm:w-auto">
-                          Create Contact
+                        <Button 
+                          type="button"
+                          onClick={() => {
+                            console.log('=== BUTTON CLICK DETECTED ===');
+                            handleCreateContact();
+                          }}
+                          className="w-full sm:w-auto"
+                          disabled={!contactForm.name.trim() || isCreating}
+                        >
+                          {isCreating ? "Creating..." : "Create Contact"}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -780,7 +929,10 @@ export default function ContactsPage() {
                             "Get started by adding your first contact"
                           }
                         </p>
-                        <Button onClick={() => setIsCreateDialogOpen(true)}>
+                        <Button onClick={() => {
+                          console.log('Add Contact (empty state) button clicked!');
+                          setIsCreateDialogOpen(true);
+                        }}>
                           <Plus className="h-4 w-4 mr-2" />
                           Add Contact
                         </Button>
@@ -809,11 +961,11 @@ export default function ContactsPage() {
                                 />
                                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                                   <span className="text-blue-600 font-semibold text-sm sm:text-lg">
-                                    {contact.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                    {contact.contactName.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{contact.name}</h3>
+                                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{contact.contactName}</h3>
                                   <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-600 mt-1">
                                     {contact.email && (
                                       <div className="flex items-center">
@@ -830,16 +982,16 @@ export default function ContactsPage() {
                                   </div>
                                   <div className="flex items-center space-x-2 mt-2">
                                     <Badge 
-                                      variant={contact.type === 'customer' ? 'default' : contact.type === 'vendor' ? 'secondary' : 'outline'}
+                                      variant={contact.contactType === 'Customer' ? 'default' : contact.contactType === 'Vendor' ? 'secondary' : 'outline'}
                                       className="text-xs"
                                     >
-                                      {contact.type}
+                                      {contact.contactType}
                                     </Badge>
                                     <Badge 
-                                      variant={contact.status === 'active' ? 'default' : 'secondary'}
+                                      variant={contact.isActive ? 'default' : 'secondary'}
                                       className="text-xs"
                                     >
-                                      {contact.status === 'active' ? 'Active' : 'Inactive'}
+                                      {contact.isActive ? 'Active' : 'Inactive'}
                                     </Badge>
                                   </div>
                                 </div>
@@ -849,7 +1001,7 @@ export default function ContactsPage() {
                                 <div className="text-left sm:text-right">
                                   <p className="text-xs sm:text-sm text-gray-600">Current Balance</p>
                                   <p className="text-sm sm:text-lg font-semibold text-gray-900">
-                                    ₹{contact.currentBalance?.toLocaleString() || '0.00'}
+                                    ₹{contact.openingBalance?.toLocaleString() || '0.00'}
                                   </p>
                                 </div>
                                 <div className="flex items-center space-x-1">
@@ -869,7 +1021,7 @@ export default function ContactsPage() {
                                       <AlertDialogHeader>
                                         <AlertDialogTitle>Delete Contact</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          Are you sure you want to delete {contact.name}? This action cannot be undone.
+                                          Are you sure you want to delete {contact.contactName}? This action cannot be undone.
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>

@@ -20,6 +20,7 @@ export default function RegisterPage() {
     email: "",
     phone: "",
     organizationName: "",
+    role: "",
     password: "",
     confirmPassword: "",
   })
@@ -84,6 +85,11 @@ export default function RegisterPage() {
       newErrors.organizationName = "Organization name is required"
     }
 
+    // Role validation
+    if (!formData.role) {
+      newErrors.role = "Role is required"
+    }
+
     // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required"
@@ -113,6 +119,7 @@ export default function RegisterPage() {
         lastName: formData.lastName,
         organizationName: formData.organizationName,
         phone: formData.phone,
+        role: formData.role,
       })
 
       if (response.success && response.data) {
@@ -215,6 +222,23 @@ export default function RegisterPage() {
                   className={errors.phone ? "border-destructive" : ""}
                 />
                 {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) => setFormData({ ...formData, role: value })}
+                >
+                  <SelectTrigger className={errors.role ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Admin">Admin (Full Access)</SelectItem>
+                    <SelectItem value="Invoicing">Invoicing User (Create Only)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
               </div>
 
               <div className="space-y-2">

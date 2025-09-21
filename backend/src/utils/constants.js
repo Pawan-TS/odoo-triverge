@@ -5,10 +5,7 @@
 // User roles
 const ROLES = {
   ADMIN: 'Admin',
-  MANAGER: 'Manager',
-  ACCOUNTANT: 'Accountant',
-  INVOICING: 'Invoicing',
-  CUSTOMER: 'Customer'
+  INVOICING: 'Invoicing'
 };
 
 // Contact types

@@ -21,7 +21,8 @@ const userSchema = {
     firstName: Joi.string().max(100).required(),
     lastName: Joi.string().max(100).required(),
     phone: Joi.string().max(30).optional(),
-    organizationName: Joi.string().min(2).max(255).required()
+    organizationName: Joi.string().min(2).max(255).required(),
+    role: Joi.string().valid('Admin', 'Invoicing').optional().default('Admin')
   }),
   
   login: Joi.object({

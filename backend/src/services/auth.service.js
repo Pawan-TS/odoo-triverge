@@ -12,7 +12,7 @@ class AuthService {
   /**
    * Register new organization with admin user
    */
-  async register({ email, password, firstName, lastName, organizationName, phone }) {
+  async register({ email, password, firstName, lastName, organizationName, phone, role }) {
     const transaction = await sequelize.transaction();
     
     try {
@@ -43,15 +43,15 @@ class AuthService {
         isActive: true
       }, { transaction });
 
-      // Assign admin role
-      const adminRole = await Role.findOne({ where: { name: ROLES.ADMIN } });
-      if (!adminRole) {
-        throw createBusinessError('Admin role not found in system');
+      // Assign user role
+      const userRole = await Role.findOne({ where: { name: role || ROLES.ADMIN } });
+      if (!userRole) {
+        throw createBusinessError(`Role '${role || ROLES.ADMIN}' not found in system`);
       }
 
       await UserRole.create({
         userId: user.id,
-        roleId: adminRole.id
+        roleId: userRole.id
       }, { transaction });
 
       // Create default sequences
